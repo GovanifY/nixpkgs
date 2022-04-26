@@ -1279,6 +1279,8 @@ in {
 
   blis = callPackage ../development/python-modules/blis { };
 
+  blivet = callPackage ../development/python-modules/blivet { };
+
   blockchain = callPackage ../development/python-modules/blockchain { };
 
   blockdiag = callPackage ../development/python-modules/blockdiag { };
