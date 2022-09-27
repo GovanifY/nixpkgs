@@ -24,6 +24,19 @@ let
 #          v TODO: maybe make types either pure nix or strings? 
        { type = "bit<9>"; name = "egressSpec_t"; }
      ];
+     const = [
+       { type = "bit<16>"; name = "TYPE_IPV4"; value = "0x800";}
+     ];
+
+     struct = [
+       { name = "headers" 
+         content = [ 
+           {
+           type = "ethernet_t"; 
+           value = "ethernet";
+         }
+           ];}
+     ];
     };
   }
 
@@ -38,6 +51,11 @@ let
   # headers.typedef = attrset of type and name
   mkTypedef = pkgs.lib.concatStringsSep "\n"  (pkgs.lib.imap1 (i: v: "typedef "
   + v.type + " " + v.name + ";") headers.typedef);
+
+  # headers.const = attrset of type, name and value
+  mkConst = pkgs.lib.concatStringsSep "\n"  (pkgs.lib.imap1 (i: v: "const "
+  + v.type + " " + v.name + " = " + v.value + ";") headers.const);
+
 
 
 
