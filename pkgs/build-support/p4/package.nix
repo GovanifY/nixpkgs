@@ -35,6 +35,13 @@ let
              type = "ethernet_t"; 
              name = "ethernet";
            }
+         ];
+       }
+     ];
+
+    header = [
+       { name = "headers" ;
+         content = [ 
            {
              type = "ethernet_t"; 
              name = "ethernet";
@@ -42,6 +49,8 @@ let
          ];
        }
      ];
+
+
     };
   }
 
@@ -61,9 +70,17 @@ let
   mkConst = pkgs.lib.concatStringsSep "\n"  (pkgs.lib.imap1 (i: v: "const "
   + v.type + " " + v.name + " = " + v.value + ";") headers.const);
 
+  # headers.struct = attrset of name and content 
   mkStruct = pkgs.lib.concatStringsSep "\n" (pkgs.lib.imap1 (i: v: "struct " +
   v.name + " {\n" + (pkgs.lib.concatStringsSep "\n" (pkgs.lib.imap1 (i: v: "
   " + v.type + "    " + v.name + ";") v.content) ) + "\n}") headers.struct);
+
+  # headers.header = attrset of name and content 
+  # same as struct but limited to bitfield and int
+  # TODO: maybe ensure in nix that this constraint is satisfied?
+  mkHeader = pkgs.lib.concatStringsSep "\n" (pkgs.lib.imap1 (i: v: "header " +
+  v.name + " {\n" + (pkgs.lib.concatStringsSep "\n" (pkgs.lib.imap1 (i: v: "
+  " + v.type + "    " + v.name + ";") v.content) ) + "\n}") headers.header);
 
 
 
