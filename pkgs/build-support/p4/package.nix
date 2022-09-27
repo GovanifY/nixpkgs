@@ -17,9 +17,27 @@ with builtins;
 
 let
 
-  # include = list of includes
-  mkInclude = pkgs.lib.concatStringsSep "\n" (map (x: "#include <" + x + ">") include)
+ { 
+   include = [ "a.p4" ];
+   headers = {
+     typedef = [
+#          v TODO: maybe make types either pure nix or strings? 
+       { type = "bit<9>"; name = "egressSpec_t"; }
+     ];
+    };
+  }
 
+
+
+
+
+
+  # include = list of includes
+  mkInclude = pkgs.lib.concatStringsSep "\n" (map (x: "#include <" + x + ">") include);
+
+  # headers.typedef = attrset of type and name
+  mkTypedef = pkgs.lib.concatStringsSep "\n"  (pkgs.lib.imap1 (i: v: "typedef "
+  + v.type + " " + v.name + ";") headers.typedef);
 
 
 
