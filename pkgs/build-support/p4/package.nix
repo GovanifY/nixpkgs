@@ -29,13 +29,18 @@ let
      ];
 
      struct = [
-       { name = "headers" 
+       { name = "headers" ;
          content = [ 
            {
-           type = "ethernet_t"; 
-           value = "ethernet";
-         }
-           ];}
+             type = "ethernet_t"; 
+             name = "ethernet";
+           }
+           {
+             type = "ethernet_t"; 
+             name = "ethernet";
+           }
+         ];
+       }
      ];
     };
   }
@@ -56,6 +61,9 @@ let
   mkConst = pkgs.lib.concatStringsSep "\n"  (pkgs.lib.imap1 (i: v: "const "
   + v.type + " " + v.name + " = " + v.value + ";") headers.const);
 
+  mkStruct = pkgs.lib.concatStringsSep "\n" (pkgs.lib.imap1 (i: v: "struct " +
+  v.name + " {\n" + (pkgs.lib.concatStringsSep "\n" (pkgs.lib.imap1 (i: v: "
+  " + v.type + "    " + v.name + ";") v.content) ) + "\n}") headers.struct);
 
 
 
