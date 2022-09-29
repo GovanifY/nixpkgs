@@ -19,6 +19,8 @@ let
 
  { 
    include = [ "a.p4" ];
+   # headers only include variables or types
+   # which are de facto stateless (eg cannot be changed during execution).
    headers = {
      typedef = [
 #          v TODO: maybe make types either pure nix or strings? 
@@ -41,6 +43,8 @@ let
 
     header = [
        { name = "headers" ;
+         # v should be optional
+         union = true;
          content = [ 
            {
              type = "ethernet_t"; 
@@ -51,6 +55,8 @@ let
      ];
 
     enum = [ { name = "X"; content = [ "v1" "v2" "v3" ]; } ];
+
+    error = [ "ParseError" "PacketTooShort" ];
 
     };
   }
@@ -79,13 +85,17 @@ let
   # headers.header = attrset of name and content 
   # same as struct but limited to bitfield and int
   # TODO: maybe ensure in nix that this constraint is satisfied?
+  # TODO: add union support to mkHeader
   mkHeader = pkgs.lib.concatStringsSep "\n" (pkgs.lib.imap1 (i: v: "header " +
   v.name + " {\n" + (pkgs.lib.concatStringsSep "\n" (pkgs.lib.imap1 (i: v: "
   " + v.type + "    " + v.name + ";") v.content) ) + "\n}") headers.header);
 
-  # headers.struct = attrset of name and content 
+  # headers.enum = attrset of name and content 
   mkEnum = pkgs.lib.concatStringsSep "\n"  (pkgs.lib.imap1 (i: v: "enum " +
-  v.name + " { " + (pkgs.lib.concatStringsSep ", " v.content) + " };") enum);
+  v.name + " { " + (pkgs.lib.concatStringsSep ", " v.content) + " };") headers.enum);
+
+  # headers.error = list of possible errors
+  mkError = "error { " + (pkgs.lib.concatStringsSep ", " headers.error) + " };";
 
 
 
