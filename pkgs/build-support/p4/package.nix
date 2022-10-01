@@ -145,8 +145,8 @@ let
   # headers.header = attrset of name and content 
   # same as struct but limited to bitfield and int
   # TODO: maybe ensure in nix that this constraint is satisfied?
-  # TODO: add union support to mkHeader
-  mkHeader = header: pkgs.lib.concatStringsSep "\n" (pkgs.lib.imap1 (i: v: "header " +
+  mkHeader = header: pkgs.lib.concatStringsSep "\n" (pkgs.lib.imap1 (i: v: (if
+  (header.union) then "header_union " else "header ") +
   v.name + " {\n" + (pkgs.lib.concatStringsSep "\n" (pkgs.lib.imap1 (i: v: "
   " + v.type + "    " + v.name + ";") v.content) ) + "\n}") header);
 
