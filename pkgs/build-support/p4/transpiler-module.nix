@@ -1,5 +1,7 @@
 { config, pkgs, lib, ... }:
 
+with lib;
+
 {
   options = {
     include = mkOption {
@@ -32,6 +34,7 @@
         Structures that should be put in as headers of the P4 program.
         Those are typically constants or immutable types.
       '';
+      default = {};
       type = types.attrsOf (types.submodule {
         options = {
           typedef = mkOption {

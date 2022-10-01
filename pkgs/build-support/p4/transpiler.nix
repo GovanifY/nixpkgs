@@ -68,8 +68,9 @@ let
   mkTarget = p4Source: targets_mapping.${p4Source.target} + "(\n" + (mkCallStack
   p4Source.call_stack) + "\n) main;";
 
-  mkSource = "";
+  mkSource = "a";
 in
   # something like this
   #includes = headers.include ++ optionals (target.name == "v1switch") [ "v1model.p4" ];
-  builtins.toFile mkSource 
+  p4_attr
+  #mkSource
