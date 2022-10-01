@@ -12,9 +12,8 @@ let
   # syntax mapper.
   targets_mapping = { v1switch="V1Switch"; };
 
-  p4Source = types.submodule {
-    options = {
-      include = {
+  p4Source = 
+      include = mkOption {
         type = types.listOf types.str;
         default = [ "core.p4" ];
         description = ''
@@ -30,74 +29,77 @@ let
         type = types.attrsOf (
           types.submodule {
             options = {
-
-              typedef = {
+              typedef = mkOption {
                 description = ''
                   The list of typedefs of the program.
                 '';
                 type = types.listOf types.attrsOf (
                   types.submodule {
                     options = {
-                      type.type = types.str;
-                      name.type = types.str;
+                      type = mkOption { type = types.str };
+                      name = mkOption { type = types.str };
                     };
               };
 
-              const = {
+              const = mkOption {
                 description = ''
                   The list of constants of the program.
                 '';
                 type = types.listOf types.attrsOf (
                   types.submodule {
                     options = {
-                      type.type = types.str;
-                      name.type = types.str;
-                      value.type = types.str;
+                      type = mkOption { type = types.str };
+                      name = mkOption { type = types.str };
+                      value = mkOption { type = types.str };
                     };
               };
 
-              struct = {
+              struct = mkOption {
                 description = ''
                   The list of structures of the program.
                 '';
-                name.type = types.str;
+                name = mkOption { type = types.str };
                 content.type = types.listOf types.attrsOf (
                    types.submodule {
                      options = {
-                       type.type = types.str;
-                       name.type = types.str;
+                       type = mkOption { type = types.str };
+                       name = mkOption { type = types.str };
                      };
               };
 
-              header = {
+              header = mkOption {
                 description = ''
                   The list of headers of the program.
                 '';
-                name.type = types.str;
-                union.type = types.bool;
-                content.type = types.listOf types.attrsOf (
+                name = mkOption { type = types.str };
+                union = mkOption { type = types.bool };
+                content = mkOption { type = types.listOf types.attrsOf (
                    types.submodule {
                      options = {
-                       type.type = types.str;
-                       name.type = types.str;
+                       type = mkOption { type = types.str };
+                       name = mkOption { type = types.str };
                      };
+                   };
+                   );
+                 };
               };
 
-              enum = {
+              enum = mkOption {
                 description = ''
                   The list of enums of the program.
                 '';
                 type = types.listOf types.attrsOf (
                   types.submodule {
                     options = {
-                      name.type = types.str;
-                      content.type = types.listOf types.str;
+                      name = mkOption { type = types.str };
+                      content = mkOption { type = types.listOf types.str };
                     };
                 };
+                );
               };
 
 
-              error = {
+              error = mkOption {
                 type = types.listOf types.str;
                 default = [ "" ];
                 description = ''
@@ -105,7 +107,7 @@ let
                 '';
               };
 
-             additional_headers = {
+             additional_headers = mkOption {
                 type = types.str;
                 default = "";
                 description = ''
@@ -118,7 +120,7 @@ let
           );
       };
 
-      target = {
+      target = mkOption {
         type = types.enum [ "v1switch" "tbd" ];
         default = "v1switch";
         description = ''
@@ -126,7 +128,7 @@ let
         '';
       };
 
-      call_stack = {
+      call_stack = mkOption {
         type = types.listOf types.str;
         default = [ "" ];
         description = ''
