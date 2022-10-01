@@ -7,6 +7,11 @@ with builtins;
 
 let
 
+  # This is the set representing the possible targets (eg top-level packages)
+  # that can be automatically deployed using nix. This is a purely nix->P4
+  # syntax mapper.
+  targets_mapping = { v1switch="V1Switch"; };
+
   p4Source = types.submodule {
     options = {
       include = {
@@ -179,6 +184,10 @@ let
 
   mkCallStack = call_stack: pkgs.lib.removeSuffix ",\n" (pkgs.lib.concatStringsSep "(),\n" call_stack);
 
+  # XXX: I am assuming that if you want to setup a target you want it to be the
+  # main logic, does this assumption always holds true?
+  mkTarget = p4Source: targets_mapping.${p4Source.target} + "(\n" + (mkCallStack
+  p4Source.call_stack) + "\n) main;";
 in
   # something like this
   includes = headers.include ++ optionals (target.name == "v1switch") [ "v1model.p4" ];
