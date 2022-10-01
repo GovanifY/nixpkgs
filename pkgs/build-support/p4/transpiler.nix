@@ -13,8 +13,10 @@ let
   targets_mapping = { v1switch="V1Switch"; };
 
   p4_attr = (lib.evalModules {
-    modules = [ ./transpiler-module.nix ];
-    args = p4Source;
+    modules = [ 
+      ./transpiler-module.nix 
+      { config = p4Source; }
+    ];
   }).config;
 
   # include = list of includes
