@@ -21232,6 +21232,8 @@ with pkgs;
 
   p11-kit = callPackage ../development/libraries/p11-kit { };
 
+  p4Platform = callPackage ../build-support/p4 { };
+
   paperkey = callPackage ../tools/security/paperkey { };
 
   parsero = callPackage ../tools/security/parsero { };

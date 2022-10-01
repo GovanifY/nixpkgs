@@ -67,7 +67,9 @@ let
   # main logic, does this assumption always holds true?
   mkTarget = p4Source: targets_mapping.${p4Source.target} + "(\n" + (mkCallStack
   p4Source.call_stack) + "\n) main;";
+
+  mkSource = "";
 in
   # something like this
-  includes = headers.include ++ optionals (target.name == "v1switch") [ "v1model.p4" ];
-  toFile mkSource 
+  #includes = headers.include ++ optionals (target.name == "v1switch") [ "v1model.p4" ];
+  builtins.toFile mkSource 
