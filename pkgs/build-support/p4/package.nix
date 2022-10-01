@@ -176,7 +176,7 @@ let
   # TODO: add v1switch and other targets there!
   #mkTarget =  then 
 
-  mkCallStack = call_stack: (pkgs.lib.concatStringsSep "(),\n" call_stack);
+  mkCallStack = call_stack: pkgs.lib.removeSuffix ",\n" (pkgs.lib.concatStringsSep "(),\n" call_stack);
 
   package = stdenv.mkDerivation (
 
