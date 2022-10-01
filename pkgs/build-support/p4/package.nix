@@ -120,6 +120,13 @@ let
           P4's deployment target. Defaults to the standard software swicth implementation.
         '';
       };
+
+      call_stack = {
+        type = types.listOf types.str;
+        default = [ "" ];
+        description = ''
+          The functions that get executed by P4 in order.
+        '';
     };
   };
 
@@ -167,7 +174,9 @@ let
     mkStruct headers.struct + "\n\n" + mkEnum headers.enum + "\n\n" + mkError headers.error;
 
   # TODO: add v1switch and other targets there!
-  #mkArch =  then 
+  #mkTarget =  then 
+
+  mkCallStack = call_stack: (pkgs.lib.concatStringsSep "(),\n" call_stack);
 
   package = stdenv.mkDerivation (
 
