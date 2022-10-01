@@ -17,51 +17,111 @@ with builtins;
 
 let
 
- { 
-   include = [ "a.p4" ];
-   # headers only include variables or types
-   # which are de facto stateless (eg cannot be changed during execution).
-   headers = {
-     typedef = [
-#          v TODO: maybe make types either pure nix or strings? 
-       { type = "bit<9>"; name = "egressSpec_t"; }
-     ];
-     const = [
-       { type = "bit<16>"; name = "TYPE_IPV4"; value = "0x800";}
-     ];
+  p4Source = types.submodule {
+    options = {
+      include = {
+        type = types.listOf types.str;
+        default = [ "core.p4" ];
+        description = ''
+          The list of files included in the program.
+        '';
+      };
 
-     struct = [
-       { name = "headers" ;
-         content = [ 
-           {
-             type = "ethernet_t"; 
-             name = "ethernet";
-           }
-         ];
-       }
-     ];
+      headers = mkOption {
+        description = ''
+          Structures that should be put in as headers of the P4 program.
+          Those are typically constants or immutable types.
+        '';
+        type = types.attrsOf (
+          types.submodule {
+            options = {
 
-    header = [
-       { name = "headers" ;
-         # v should be optional
-         union = true;
-         content = [ 
-           {
-             type = "ethernet_t"; 
-             name = "ethernet";
-           }
-         ];
-       }
-     ];
+              typedef = {
+                description = ''
+                  The list of typedefs of the program.
+                '';
+                type = types.listOf types.attrsOf (
+                  types.submodule {
+                    options = {
+                      type.type = types.str;
+                      name.type = types.str;
+                    };
+              };
 
-    enum = [ { name = "X"; content = [ "v1" "v2" "v3" ]; } ];
+              const = {
+                description = ''
+                  The list of constants of the program.
+                '';
+                type = types.listOf types.attrsOf (
+                  types.submodule {
+                    options = {
+                      type.type = types.str;
+                      name.type = types.str;
+                      value.type = types.str;
+                    };
+              };
 
-    error = [ "ParseError" "PacketTooShort" ];
+              struct = {
+                description = ''
+                  The list of structures of the program.
+                '';
+                name.type = types.str;
+                content.type = types.listOf types.attrsOf (
+                   types.submodule {
+                     options = {
+                       type.type = types.str;
+                       name.type = types.str;
+                     };
+              };
 
+              header = {
+                description = ''
+                  The list of headers of the program.
+                '';
+                name.type = types.str;
+                union.type = types.bool;
+                content.type = types.listOf types.attrsOf (
+                   types.submodule {
+                     options = {
+                       type.type = types.str;
+                       name.type = types.str;
+                     };
+              };
+
+              enum = {
+                description = ''
+                  The list of enums of the program.
+                '';
+                type = types.listOf types.attrsOf (
+                  types.submodule {
+                    options = {
+                      name.type = types.str;
+                      content.type = types.listOf types.str;
+                    };
+              };
+
+
+              error = {
+                type = types.listOf types.str;
+                default = [ "" ];
+                description = ''
+                  The list of error states of the program.
+                '';
+              };
+            };
+          };
+          );
+      };
+
+      target = {
+        type = types.enum [ "v1switch" "tbd" ];
+        default = "v1switch";
+        description = ''
+          P4's deployment target. Defaults to the standard software swicth implementation.
+        '';
+      };
     };
-  }
-
-
+  };
 
 
 
