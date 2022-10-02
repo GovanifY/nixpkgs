@@ -80,7 +80,7 @@ with lib;
               The list of headers of the program.
             '';
             name = mkOption { type = types.str; };
-            union = mkOption { type = types.bool; };
+            union = mkOption { type = types.bool; default = false; };
             content = mkOption {
               type = types.listOf types.attrsOf (types.submodule {
                 options = {
