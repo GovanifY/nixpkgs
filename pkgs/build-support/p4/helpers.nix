@@ -2,9 +2,11 @@
 
 {
   typedef = {
-    macAddr = { type = "bit<48>"; name = "macAddr_t"; };
+    macAddr = { type = "bit<48>"; name = "macAddr"; };
 
-    ip4Addr = { type = "bit<32>"; name = "ip4Addr_t"; };
+    ip4Addr = { type = "bit<32>"; name = "ip4Addr"; };
+
+    ip6Addr = { type = "bit<128>"; name = "ip6Addr"; };
   };
 
   header = {
@@ -40,6 +42,21 @@
       content = [ { type = "varbit<320>"; name = "options"; } ];
     };
 
+    ipv6_base_h = {
+      name = "ipv6_base_h";
+      content = [
+        { type = "bit<4>"; name = "version"; }
+        { type = "bit<8>"; name = "trafficClass"; }
+        { type = "bit<20>"; name = "flowLabel"; }
+        { type = "bit<16>"; name = "payloadLen"; }
+        { type = "bit<8>"; name = "nextHeader"; }
+        { type = "bit<8>"; name = "hopLimit"; }
+        { type = "ip6Addr"; name = "srcAddr"; }
+        { type = "ip6Addr"; name = "dstAddr"; }
+      ];
+    };
+
+
     tcp_no_options_h = { 
       name = "tcp_h";
       content = [
@@ -66,6 +83,16 @@
     tcp_options_h = { 
       name = "tcp_options_h";
       content = [ { type = "varbit<320>"; name = "options"; } ];
+    };
+
+    udp_h = {
+      name = "udp_h";
+      content = [
+        { type = "bit<16>"; name = "srcPort"; }
+        { type = "bit<16>"; name = "dstPort"; }
+        { type = "bit<16>"; name = "length"; }
+        { type = "bit<16>"; name = "checksum"; }
+      ];
     };
 
 
