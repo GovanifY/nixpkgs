@@ -23,6 +23,10 @@ let
   # include = list of includes
   mkInclude = include: concatStringsSep "\n" (map (x: "#include <" + x + ">") include);
 
+  # define = list of attr of name and value
+  mkDefine = define:  concatStringsSep "\n"  (imap1 (i: v: "#define "
+  + v.name + " " + v.value) define);
+
   # headers.typedef = attrset of type and name
   mkTypedef = typedef: concatStringsSep "\n"  (imap1 (i: v: "typedef "
   + v.type + " " + v.name + ";") typedef);

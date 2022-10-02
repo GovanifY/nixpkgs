@@ -12,6 +12,21 @@ with lib;
       '';
     };
 
+    define = mkOption {
+      default = [ ];
+      description = ''
+        The list of #define and their value to be interpreted by the
+        preprocessor.
+      '';
+      type = types.listOf types.attrsOf (types.submodule {
+        options = {
+          name = mkOption { type = types.str; };
+          value = mkOption { type = types.str; };
+        };
+      });
+    };
+
+
     target = mkOption {
       type = types.enum [ "v1switch" "tbd" ];
       default = "v1switch";
