@@ -49,7 +49,6 @@ with lib;
         Structures that should be put in as headers of the P4 program.
         Those are typically constants or immutable types.
       '';
-      default = {};
       type = types.attrsOf (types.submodule {
         options = {
           typedef = mkOption {
@@ -68,6 +67,7 @@ with lib;
             description = ''
               The list of constants of the program.
             '';
+            default = [];
             type = types.listOf types.attrsOf (types.submodule {
               options = {
                 type = mkOption { type = types.str; };
@@ -81,6 +81,7 @@ with lib;
             description = ''
               The list of structures of the program.
             '';
+            default = {};
             name = mkOption { type = types.str; };
             content.type = types.listOf types.attrsOf (types.submodule {
               options = {
@@ -94,6 +95,7 @@ with lib;
             description = ''
               The list of headers of the program.
             '';
+            default = { };
             name = mkOption { type = types.str; };
             union = mkOption { type = types.bool; default = false; };
             content = mkOption {
@@ -110,6 +112,7 @@ with lib;
             description = ''
               The list of enums of the program.
             '';
+            default = [];
             type = types.listOf types.attrsOf (types.submodule {
               options = {
                 name = mkOption { type = types.str; };
@@ -120,7 +123,7 @@ with lib;
 
           error = mkOption {
             type = types.listOf types.str;
-            default = [ "" ];
+            default = [ ];
             description = ''
               The list of error states of the program.
             '';
