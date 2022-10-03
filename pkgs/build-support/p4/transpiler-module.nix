@@ -1,5 +1,5 @@
 { config, pkgs, lib, ... }:
-
+#TODO: add documentation here on listof attrs, and why done this way!
 with lib;
 
 {
@@ -18,14 +18,8 @@ with lib;
         The list of #define and their value to be interpreted by the
         preprocessor.
       '';
-      type = types.listOf types.attrsOf (types.submodule {
-        options = {
-          name = mkOption { type = types.str; };
-          value = mkOption { type = types.str; };
-        };
-      });
+      type = types.listOf (types.attrsOf types.str);
     };
-
 
     target = mkOption {
       type = types.enum [ "v1switch" "tbd" ];
@@ -35,110 +29,88 @@ with lib;
       '';
     };
 
-    # TODO: redefine using target.name and content for each stage
     logic = mkOption {
-      type = types.listOf types.str;
-      default = [ "" ];
+      type = types.listOf (types.attrsOf types.str);
+      default = [ ];
       description = ''
         The functions that get executed by P4 in order.
       '';
     };
 
-    headers = mkOption {
-      description = ''
-        Structures that should be put in as headers of the P4 program.
-        Those are typically constants or immutable types.
-      '';
-      type = types.attrsOf (types.submodule {
-        options = {
-          typedef = mkOption {
-            description = ''
-              The list of typedefs of the program.
-            '';
-            type = types.listOf types.attrsOf (types.submodule {
-              options = {
-                type = mkOption { type = types.str; };
-                name = mkOption { type = types.str; };
-              };
-            });
-          };
+    headers = {
+      typedef = mkOption {
+        description = ''
+          The list of typedefs of the program.
+        '';
+        type = types.attrsOf types.str;
+      };
 
-          const = mkOption {
-            description = ''
-              The list of constants of the program.
-            '';
-            default = [];
-            type = types.listOf types.attrsOf (types.submodule {
-              options = {
-                type = mkOption { type = types.str; };
-                name = mkOption { type = types.str; };
-                value = mkOption { type = types.str; };
-              };
-            });
-          };
+      const = mkOption {
+        description = ''
+          The list of constants of the program.
+        '';
+        default = { };
+        type = types.attrsOf (types.attrsOf types.str);
+      };
 
-          struct = mkOption {
-            description = ''
-              The list of structures of the program.
-            '';
-            default = {};
-            name = mkOption { type = types.str; };
-            content.type = types.listOf types.attrsOf (types.submodule {
-              options = {
-                type = mkOption { type = types.str; };
-                name = mkOption { type = types.str; };
-              };
-            });
-          };
-
-          header = mkOption {
-            description = ''
-              The list of headers of the program.
-            '';
-            default = { };
-            name = mkOption { type = types.str; };
-            union = mkOption { type = types.bool; default = false; };
+      struct = mkOption {
+        description = ''
+          The list of structures of the program.
+        '';
+        default = { };
+        type = types.attrsOf (types.submodule {
+          options = {
             content = mkOption {
-              type = types.listOf types.attrsOf (types.submodule {
-                options = {
-                  type = mkOption { type = types.str; };
-                  name = mkOption { type = types.str; };
-                };
-              });
+              type = types.listOf (types.attrsOf types.str);
+              default = [ ];
             };
           };
+        });
+      };
 
-          enum = mkOption {
-            description = ''
-              The list of enums of the program.
-            '';
-            default = [];
-            type = types.listOf types.attrsOf (types.submodule {
-              options = {
-                name = mkOption { type = types.str; };
-                content = mkOption { type = types.listOf types.str; };
-              };
-            });
+      header = mkOption {
+        description = ''
+          The list of headers of the program.
+        '';
+        default = { };
+        type = types.attrsOf (types.submodule {
+          options = {
+            union = mkOption {
+              type = types.bool;
+              default = false;
+            };
+            content = mkOption {
+              type = types.listOf (types.attrsOf types.str);
+              default = [ ];
+            };
           };
+        });
+      };
 
-          error = mkOption {
-            type = types.listOf types.str;
-            default = [ ];
-            description = ''
-              The list of error states of the program.
-            '';
-          };
+      enum = mkOption {
+        description = ''
+          The list of enums of the program.
+        '';
+        default = [ ];
+        type = types.attrsOf (types.listOf types.str);
+      };
 
-          additional_headers = mkOption {
-            type = types.str;
-            default = "";
-            description = ''
-              P4 source code of additional headers required.
-            '';
-          };
-        };
-      });
+      error = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+        description = ''
+          The list of error states of the program.
+        '';
+      };
+
+      additional_headers = mkOption {
+        type = types.str;
+        default = "";
+        description = ''
+          P4 source code of additional headers required.
+        '';
+      };
     };
-
   };
+
 }
