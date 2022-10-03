@@ -43,6 +43,7 @@ with lib;
           The list of typedefs of the program.
         '';
         type = types.attrsOf types.str;
+        default = {};
       };
 
       const = mkOption {
@@ -91,7 +92,7 @@ with lib;
         description = ''
           The list of enums of the program.
         '';
-        default = [ ];
+        default = { };
         type = types.attrsOf (types.listOf types.str);
       };
 
