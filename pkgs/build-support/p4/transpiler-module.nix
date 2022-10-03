@@ -18,7 +18,7 @@ with lib;
         The list of #define and their value to be interpreted by the
         preprocessor.
       '';
-      type = types.listOf (types.attrsOf types.str);
+      type = types.attrsOf types.str;
     };
 
     target = mkOption {
