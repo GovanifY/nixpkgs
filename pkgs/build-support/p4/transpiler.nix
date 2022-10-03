@@ -28,17 +28,17 @@ let
   + v.name + " " + v.value) define);
 
   # headers.typedef = attrset of type and name
-  mkTypedef = typedef: concatStringsSep "\n"  (imap1 (i: v: "typedef "
-  + v.type + " " + v.name + ";") typedef);
+  mkTypedef = typedef: concatStringsSep "\n"  (mapAttrsToList (name: value:
+  "typedef " + value + " " + name + ";") typedef);
 
   # headers.const = attrset of type, name and value
-  mkConst = const: concatStringsSep "\n"  (imap1 (i: v: "const "
-  + v.type + " " + v.name + " = " + v.value + ";") const);
+  mkConst = const: concatStringsSep "\n"  (mapAttrsToList (name: value: "const "
+  + value.type + " " + name + " = " + value.value + ";") const);
 
   # headers.struct = attrset of name and content
-  mkStruct = struct: concatStringsSep "\n" (imap1 (i: v: "struct " +
-  v.name + " {\n" + (concatStringsSep "\n" (imap1 (i: v: "
-  " + v.type + "    " + v.name + ";") v.content) ) + "\n}") struct);
+  mkHeader = header: (mapAttrsToList (name: value: "struct " + name + " {\n " +
+  (concatStringsSep "\n" (flatten (imap 1 (_: v: (mapAttrsToList (name: value: 
+  "    " + value + " " + name + ";\n") v)) value.content))) + "}\n" ) header );
 
   # headers.header = attrset of name and content
   # same as struct but limited to bitfield and int  
@@ -48,8 +48,8 @@ let
   name + ";\n") v)) value.content))) + "}\n" ) header );
 
   # headers.enum = attrset of name and content
-  mkEnum = enum: concatStringsSep "\n"  (imap1 (i: v: "enum " +
-  v.name + " { " + (concatStringsSep ", " v.content) + " };") enum);
+  mkEnum = enum: concatStringsSep "\n"  (mapAttrsToList (name: value: "enum " +
+  name + " { " + (concatStringsSep ", " value) + " }") enum)
 
   # headers.error = list of possible errors
   mkError = error: "error { " + (concatStringsSep ", " error) + " };";
@@ -80,7 +80,8 @@ let
   # TODO: add v1switch and other targets there!
   #mkTarget =  then
 
-  mkCallStack = call_stack: removeSuffix ",\n" (concatStringsSep "(),\n" call_stack);
+  # TODO: port to logic. namespace
+  #mkCallStack = call_stack: removeSuffix ",\n" (concatStringsSep "(),\n" call_stack);
 
   # XXX: I am assuming that if you want to setup a target you want it to be the
   # main logic, does this assumption always holds true?
