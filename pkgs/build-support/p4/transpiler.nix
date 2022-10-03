@@ -41,12 +41,11 @@ let
   " + v.type + "    " + v.name + ";") v.content) ) + "\n}") struct);
 
   # headers.header = attrset of name and content
-  # same as struct but limited to bitfield and int
-  # TODO: maybe ensure in nix that this constraint is satisfied?
-  mkHeader = header: concatStringsSep "\n" (imap1 (i: v: (if
-  (header.union) then "header_union " else "header ") +
-  v.name + " {\n" + (concatStringsSep "\n" (imap1 (i: v: "
-  " + v.type + "    " + v.name + ";") v.content) ) + "\n}") header);
+  # same as struct but limited to bitfield and int  
+  mkHeader = header: (mapAttrsToList (name: value: (if (value.union) then
+  "header_union " else "header ") + name + " {\n " + (concatStringsSep "\n"
+  (flatten (imap 1 (_: v: (mapAttrsToList (name: value: "    " + value + " " +
+  name + ";\n") v)) value.content))) + "}\n" ) header );
 
   # headers.enum = attrset of name and content
   mkEnum = enum: concatStringsSep "\n"  (imap1 (i: v: "enum " +
