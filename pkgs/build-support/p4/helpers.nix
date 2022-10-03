@@ -2,57 +2,57 @@
 
 {
   typedef = {
-    macAddr = { type = "bit<48>"; name = "macAddr"; };
+    macAddr = { "macAddr" = "bit<48>"; };
 
-    ip4Addr = { type = "bit<32>"; name = "ip4Addr"; };
+    ip4Addr = { "ip4Addr" = "bit<32>"; };
 
-    ip6Addr = { type = "bit<128>"; name = "ip6Addr"; };
+    ip6Addr = { "ip6Addr" = "bit<128>"; };
   };
 
   header = {
     ethernet_h = {
       name = "ethernet_h";
       content = [
-        { type = "macAddr"; name = "dstAddr"; }
-        { type = "macAddr"; name = "srcAddr"; }
-        { type = "bit<16>"; name = "etherType"; }
+        { "dstAddr" = "macAddr"; }
+        { "srcAddr" = "macAddr"; }
+        { "etherType" = "bit<16>";  }
       ];
     };
 
     ipv4_no_options_h = {
       name = "ipv4_no_options_h";
       content = [
-        { type = "bit<4>"; name = "version"; }
-        { type = "bit<4>"; name = "ihl"; }
-        { type = "bit<8>"; name = "diffserv"; }
-        { type = "bit<16>"; name = "totalLen"; }
-        { type = "bit<16>"; name = "identification"; }
-        { type = "bit<3>"; name = "flags"; }
-        { type = "bit<13>"; name = "fragOffset"; }
-        { type = "bit<8>"; name = "ttl"; }
-        { type = "bit<8>"; name = "protocol"; }
-        { type = "bit<16>"; name = "hdrChecksum"; }
-        { type = "ip4Addr"; name = "srcAddr"; }
-        { type = "ip4Addr"; name = "dstAddr"; }
+        { "version" = "bit<4>"; }
+        { "ihl" = "bit<4>"; }
+        { "diffserv" = "bit<8>"; }
+        { "totalLen" = "bit<16>"; }
+        { "identification" = "bit<16>"; }
+        { "flags" = "bit<3>"; }
+        { "fragOffset" = "bit<13>"; }
+        { "ttl" = "bit<8>"; }
+        { "protocol" = "bit<8>"; }
+        { "hdrChecksum" = "bit<16>"; }
+        { "srcAddr" = "ip4Addr"; }
+        { "dstAddr" = "ip4Addr"; }
       ];
     };
 
     ipv4_options_h = {
       name = "ipv4_options_h";
-      content = [ { type = "varbit<320>"; name = "options"; } ];
+      content = [ { "options" = "varbit<320>"; } ];
     };
 
     ipv6_base_h = {
       name = "ipv6_base_h";
       content = [
-        { type = "bit<4>"; name = "version"; }
-        { type = "bit<8>"; name = "trafficClass"; }
-        { type = "bit<20>"; name = "flowLabel"; }
-        { type = "bit<16>"; name = "payloadLen"; }
-        { type = "bit<8>"; name = "nextHeader"; }
-        { type = "bit<8>"; name = "hopLimit"; }
-        { type = "ip6Addr"; name = "srcAddr"; }
-        { type = "ip6Addr"; name = "dstAddr"; }
+        { "version" = "bit<4>"; }
+        { "trafficClass" = "bit<8>"; }
+        { "flowLabel" = "bit<20>"; }
+        { "payloadLen" = "bit<16>"; }
+        { "nextHeader" = "bit<8>"; }
+        { "hopLimit" = "bit<8>"; }
+        { "srcAddr" = "ip6Addr"; }
+        { "dstAddr" = "ip6Addr"; }
       ];
     };
 
@@ -60,38 +60,38 @@
     tcp_no_options_h = { 
       name = "tcp_h";
       content = [
-        { type = "bit<16>"; name = "srcPort"; }
-        { type = "bit<16>"; name = "dstPort"; }
-        { type = "bit<32>"; name = "seqNo"; }
-        { type = "bit<32>"; name = "ackNo"; }
-        { type = "bit<4>"; name = "dataOffset"; }
-        { type = "bit<4>"; name = "res"; }
-        { type = "bit<1>"; name = "cwr"; }
-        { type = "bit<1>"; name = "ece"; }
-        { type = "bit<1>"; name = "urg"; }
-        { type = "bit<1>"; name = "ack"; }
-        { type = "bit<1>"; name = "psh"; }
-        { type = "bit<1>"; name = "rst"; }
-        { type = "bit<1>"; name = "syn"; }
-        { type = "bit<1>"; name = "fin"; }
-        { type = "bit<16>"; name = "window"; }
-        { type = "bit<16>"; name = "checksum"; }
-        { type = "bit<16>"; name = "urgentPtr"; }
+        { "srcPort" = "bit<16>"; }
+        { "dstPort" = "bit<16>"; }
+        { "seqNo" = "bit<32>"; }
+        { "ackNo" = "bit<32>"; }
+        { "dataOffset" = "bit<4>"; }
+        { "res" = "bit<4>"; }
+        { "cwr" = "bit<1>"; }
+        { "ece" = "bit<1>"; }
+        { "urg" = "bit<1>"; }
+        { "ack" = "bit<1>"; }
+        { "psh" = "bit<1>"; }
+        { "rst" = "bit<1>"; }
+        { "syn" = "bit<1>"; }
+        { "fin" = "bit<1>"; }
+        { "window" = "bit<16>"; }
+        { "checksum" = "bit<16>"; }
+        { "urgentPtr" = "bit<16>"; }
       ];
     };
 
     tcp_options_h = { 
       name = "tcp_options_h";
-      content = [ { type = "varbit<320>"; name = "options"; } ];
+      content = [ { "options" = "varbit<320>"; } ];
     };
 
     udp_h = {
       name = "udp_h";
       content = [
-        { type = "bit<16>"; name = "srcPort"; }
-        { type = "bit<16>"; name = "dstPort"; }
-        { type = "bit<16>"; name = "length"; }
-        { type = "bit<16>"; name = "checksum"; }
+        { "srcPort" = "bit<16>"; }
+        { "dstPort" = "bit<16>"; }
+        { "length" = "bit<16>"; }
+        { "checksum" = "bit<16>"; }
       ];
     };
 
