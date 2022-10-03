@@ -36,7 +36,7 @@ with lib;
     };
 
     # TODO: redefine using target.name and content for each stage
-    call_stack = mkOption {
+    logic = mkOption {
       type = types.listOf types.str;
       default = [ "" ];
       description = ''

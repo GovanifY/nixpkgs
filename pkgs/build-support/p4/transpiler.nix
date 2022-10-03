@@ -14,7 +14,6 @@ let
   targets_mapping = { v1switch="V1Switch"; };
 
   #TODO: add additional fields and checks here, eg include for v1switch target!
-  p4_attr.include p4_attr.headers;
   p4_attr = (lib.evalModules {
     modules = [ 
       ./transpiler-module.nix 
@@ -38,7 +37,7 @@ let
   + value.type + " " + name + " = " + value.value + ";") const);
 
   # headers.struct = attrset of name and content
-  mkHeader = header: (mapAttrsToList (name: value: "struct " + name + " {\n " +
+  mkStruct = header: (mapAttrsToList (name: value: "struct " + name + " {\n " +
   (concatStringsSep "\n" (flatten (imap 1 (_: v: (mapAttrsToList (name: value: 
   "    " + value + " " + name + ";\n") v)) value.content))) + "}\n" ) header );
 
@@ -92,6 +91,6 @@ let
     ${mkLogic p4_attr.logic}
 
     ${mkTarget p4_attr.target p4_attr.logic}
-  ''
+  '';
 in
   mkSource
