@@ -2,13 +2,7 @@
 
 { buildInputs ? []
 , nativeBuildInputs ? []
-, passthru ? {}
-, preFixup ? ""
-, shellHook ? ""
-
-# needed for buildFlags{,Array} warning
-, buildFlags ? ""
-, buildFlagsArray ? ""
+, src ? {},
 
 , meta ? {}, ... } @ args:
 
@@ -18,51 +12,28 @@ with builtins;
 let
   package = stdenv.mkDerivation (
 
+    src = src;
 
     nativeBuildInputs = [ p4c ] ++ nativeBuildInputs;
     buildInputs = buildInputs;
+    phases = [ "buildPhase" "installPhase" ];
 
-    configurePhase = args.configurePhase or ''
-      runHook preConfigure
-
-      runHook postConfigure
+    buildPhase = ''
+      ${pkgs.p4c}/bin/p4c --target bmv2 --arch v1model *.p4
     '';
 
-    buildPhase = args.buildPhase or ''
-      runHook preBuild
+    installPhase = ''
 
-      runHook renameImports
-
-      runHook postBuild
+      mkdir -p $out/
+      # TODO: json is the output given for bmv2, this should be changed
+      # for other targets!
+      cp -a *.json $out/
     '';
-
-    doCheck = args.doCheck or false;
-    checkPhase = args.checkPhase or ''
-      runHook preCheck
-      
-      TODO
-
-      runHook postCheck
-    '';
-
-    installPhase = args.installPhase or ''
-      runHook preInstall
-
-      TODO
-
-      runHook postInstall
-    '';
-
-    strictDeps = true;
-
-    enableParallelBuilding = enableParallelBuilding;
 
     meta = {
-      # TODO: add FPGA support here!
+      # TODO: change depending on targets here! 
       platforms = lib.platforms.linux;
     } // meta;
   });
 in
-lib.warnIf (buildFlags != "" || buildFlagsArray != "")
-  "Use the `ldflags` and/or `tags` attributes instead of `buildFlags`/`buildFlagsArray`"
   package
