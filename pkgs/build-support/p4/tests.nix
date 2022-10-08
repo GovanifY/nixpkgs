@@ -7,10 +7,11 @@
 # done later in the project once everything is a little bit more stabilized and
 # we can reuse modules that we will have created.
 
-# Run me with: sudo nixos-rebuild build-vm --fast -I nixos-config=./tests.nix -I nixpkgs=$NIXPKGS
-{ config, pkgs, lib, ... }:
+# Run me with: nix-build $NIXPKGS tests.nix
+with import <nixpkgs> {};
 with pkgs.p4Platform.helpers.header;
 with pkgs.p4Platform.helpers.typedef;
+with pkgs;
 let 
   source = {
     define = { "test" = "test2"; };
@@ -33,15 +34,8 @@ let
   };
 in
 {
-  users = {
-    mutableUsers = false;
-    extraUsers = {
-      root = {
-        password = "toor";
-      };
-    };
-  };
-  services.openssh.enable = (lib.traceSeq source true);
-
-  networking.hostName = (lib.traceSeq (pkgs.p4Platform.runTranspiler {p4Source = source;} ) "");
+  p4Platform.mkProgram { 
+    src = (p4Platform.runTranspiler 
+      { p4Source = source; }) 
+  }
 }
