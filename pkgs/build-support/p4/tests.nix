@@ -83,13 +83,6 @@ let
         ''; 
       }
       {
-        "MyComputeChecksum" = ''
-          control MyComputeChecksum(inout headers_t hdr, inout meta_t meta) {
-              apply { }
-          }
-        ''; 
-      }
-      {
         "MyIngress" = ''
           control MyIngress(inout headers_t hdr, inout meta_t meta, inout std_meta_t std_meta) {
             action allow() { }
@@ -115,6 +108,14 @@ let
       {
         "MyEgress" = ''
           control MyEgress(inout headers_t hdr, inout meta_t meta, inout std_meta_t std_meta) {
+              apply { }
+          }
+        ''; 
+      }
+
+      {
+        "MyComputeChecksum" = ''
+          control MyComputeChecksum(inout headers_t hdr, inout meta_t meta) {
               apply { }
           }
         ''; 
