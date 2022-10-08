@@ -23,8 +23,8 @@ let
 
     name = name;
 
-    nativeBuildInputs = [ p4c ] ++ nativeBuildInputs;
-    buildInputs = buildInputs;
+    nativeBuildInputs = nativeBuildInputs;
+    buildInputs = [ p4c ] ++ buildInputs;
     phases = [ "buildPhase" "installPhase" ];
 
     buildPhase = ''
