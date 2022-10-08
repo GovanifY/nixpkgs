@@ -1,7 +1,6 @@
 { lib, stdenv }:
 
-{ p4Source, ... } @ args:
-
+{ p4Source, ... }@args:
 
 with builtins;
 with lib;
@@ -11,50 +10,69 @@ let
   # This is the set representing the possible targets (eg top-level packages)
   # that can be automatically deployed using nix. This is a purely nix->P4
   # syntax mapper.
-  targets_mapping = { v1switch="V1Switch"; };
+  targets_mapping = { v1switch = "V1Switch"; };
 
   #TODO: add additional fields and checks here, eg include for v1switch target!
+
+  # This ensures the argument given as p4Source is correctly-typed and add defaults
+  # to the attrset given as need be so the function below can work with correct
+  # assumptions.
   p4_attr = (lib.evalModules {
-    modules = [ 
-      ./transpiler-module.nix 
-      { config = p4Source; }
-    ];
+    modules = [ ./transpiler-module.nix { config = p4Source; } ];
   }).config;
 
+  # All of the functions below are mostly fancy wrappers for adding
+  # constants or set types that cannot be changed and are usually in global
+  # scope.
+
   # include = list of includes
-  mkInclude = include: concatStringsSep "\n" (map (x: "#include <" + x + ">") include);
+  mkInclude = include:
+    concatStringsSep "\n" (map (x: "#include <" + x + ">") include);
 
   # define = list of attr of name and value
-  mkDefine = define:  concatStringsSep "\n"  (mapAttrsToList (name: value: "#define "
-  + name + " " + value) define);
+  mkDefine = define:
+    concatStringsSep "\n"
+    (mapAttrsToList (name: value: "#define " + name + " " + value) define);
 
   # headers.typedef = attrset of type and name
-  mkTypedef = typedef: concatStringsSep "\n"  (mapAttrsToList (name: value:
-  "typedef " + value + " " + name + ";") typedef);
+  mkTypedef = typedef:
+    concatStringsSep "\n"
+      (mapAttrsToList (name: value: "typedef " + value + " " + name + ";")
+        typedef);
 
   # headers.const = attrset of type, name and value
-  mkConst = const: concatStringsSep "\n"  (mapAttrsToList (name: value: "const "
-  + value.type + " " + name + " = " + value.value + ";") const);
+  mkConst = const:
+    concatStringsSep "\n" (mapAttrsToList (name: value:
+      "const " + value.type + " " + name + " = " + value.value + ";") const);
 
   # headers.struct = attrset of name and content
-  mkStruct = header: concatStringsSep "\n\n" (mapAttrsToList (name: value: "struct " + name + " {\n " +
-  (concatStringsSep "\n" (flatten (imap1 (_: v: (mapAttrsToList (name: value: 
-  "    " + value + " " + name + ";") v)) value.content))) + "\n}" ) header );
+  mkStruct = header:
+    concatStringsSep "\n\n" (mapAttrsToList (name: value:
+      "struct " + name + " {\n " + (concatStringsSep "\n" (flatten (imap1 (_: v:
+        (mapAttrsToList (name: value: "    " + value + " " + name + ";") v)
+       ) value.content))) + "\n}" ) header);
 
   # headers.header = attrset of name and content
   # same as struct but limited to bitfield and int  
-  mkHeader = header: concatStringsSep "\n\n" (mapAttrsToList (name: value: (if (value.union) then
-  "header_union " else "header ") + name + " {\n " + (concatStringsSep "\n"
-  (flatten (imap1 (_: v: (mapAttrsToList (name: value: "    " + value + " " +
-  name + ";") v)) value.content))) + "\n}" ) header );
+  mkHeader = header:
+    concatStringsSep "\n\n" (mapAttrsToList (name: value:
+      (if (value.union) then "header_union " else "header ") 
+        + name + " {\n " + 
+        (concatStringsSep "\n" (flatten (imap1 (_: v:
+          (mapAttrsToList (name: value: "    " + value + " " + name + ";") v)
+        ) value.content))) + "\n}" ) header);
 
   # headers.enum = attrset of name and content
-  mkEnum = enum: concatStringsSep "\n"  (mapAttrsToList (name: value: "enum " +
-  name + " { " + (concatStringsSep ", " value) + " }") enum);
+  mkEnum = enum:
+    concatStringsSep "\n" (mapAttrsToList (name: value:
+      "enum " + name + " { " + (concatStringsSep ", " value) + " }") enum);
 
   # headers.error = list of possible errors
-  mkError = error: if (error != []) then "error { " + (concatStringsSep ", "
-  error) + " };" else "";
+  mkError = error:
+    if (error != [ ]) then
+      "error { " + (concatStringsSep ", " error) + " };"
+    else
+      "";
 
   # TODO: maybe we should allow the user to control the scope depth of the
   # define...?
@@ -69,7 +87,7 @@ let
     ${mkTypedef headers.typedef}
 
     ${mkHeader headers.header}
-    
+
     ${mkStruct headers.struct}
 
     ${mkEnum headers.enum}
@@ -77,18 +95,34 @@ let
     ${mkError headers.error}
 
     ${headers.additional_headers}
-    '';
+  '';
 
-  mkLogic = logic: concatStringsSep "\n\n" (imap1 (_: v: (concatStringsSep ""
-  (mapAttrsToList (name: value: value) v))) logic);
+  # logic: list of attrset of name and value. See transpiler-module for the
+  # reasoning behind the format of this and other parts of the transpiler.
+  mkLogic = logic:
+    concatStringsSep "\n\n"
+    (imap1 (_: v: (concatStringsSep "" (mapAttrsToList (name: value: value) v)))
+      logic);
 
   # XXX: I am assuming that if you want to setup a target you want it to be the
   # main logic, does this assumption always holds true?
-  mkTarget = target: logic: targets_mapping.${target} + "(\n" + mkCallStack logic + "\n) main;";
+  # Creates the global main scope of the P4 program with the logic defined.
+  mkTarget = target: logic:
+    targets_mapping.${target} + ''
+      (
+    '' + mkCallStack logic + ''
 
-  mkCallStack = logic: concatStringsSep "(),\n" (imap1 (_: v: (concatStringsSep
-  "" (mapAttrsToList (name: value: name) v))) logic) + "()";
+      ) main;'';
 
+  # Concatenates the logic functions into a single sequential block.
+  mkCallStack = logic:
+    concatStringsSep ''
+      (),
+    ''
+    (imap1 (_: v: (concatStringsSep "" (mapAttrsToList (name: value: name) v)))
+      logic) + "()";
+
+  # Final assembly of the source file needed to, eg, create a derivation.
   mkSource = ''
     ${mkHeaders p4_attr.include p4_attr.define p4_attr.headers}
 
@@ -96,5 +130,5 @@ let
 
     ${mkTarget p4_attr.target p4_attr.logic}
   '';
-in
+in 
   mkSource
