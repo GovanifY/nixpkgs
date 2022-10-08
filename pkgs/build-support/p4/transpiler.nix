@@ -108,11 +108,13 @@ let
   # main logic, does this assumption always holds true?
   # Creates the global main scope of the P4 program with the logic defined.
   mkTarget = target: logic:
-    targets_mapping.${target} + ''
-      (
-    '' + mkCallStack logic + ''
+    if (target != "null") then
+      targets_mapping.${target} + ''
+        (
+      '' + mkCallStack logic + ''
 
-      ) main;'';
+        ) main;'';
+    else "";
 
   # Concatenates the logic functions into a single sequential block.
   mkCallStack = logic:

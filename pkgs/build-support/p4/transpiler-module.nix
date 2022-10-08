@@ -1,5 +1,49 @@
 { config, pkgs, lib, ... }:
-#TODO: add documentation here on listof attrs, and why done this way!
+# The format of the P4 transpiler is as follows:
+# * define
+#     A list of define to be used by the preprocessor. As this can modify the
+#     parsing logic of the rest of the file, this is in global scope and not
+#     defined in, eg, headers.
+#
+# * include
+#     A list of includes to be used by the program. As this can modify parsing
+#     logic of the rest of the file, this is in global scope, same reasoning as
+#     define.
+#
+# * headers
+#     A list of headers set in global scope for this file. This contains either
+#     constant values or set types that cannot be changed at runtime
+#     specifically but cannot change the logic of the file, and as such are all
+#     stored in their own small namespace.
+#     You'll find in this attrset: const, header, typedef, enum, error, struct
+#                                  additional_headers.
+#     additional_headers is a string that can be used to add anything that isn't
+#     currently supported. This is especially useful if you want to, eg, declare
+#     variables or includes using preprocessing logic, of which this transpiler
+#     is (mostly) not concerned by.
+#     Please refer to the example belows for the format of the other attributes.
+#
+# * target
+#     The target for which this P4 program should be built. This is an optional
+#     field in case you want to create a derivation to be included in another
+#     derivation without the need to build it to a specific target.
+#
+# * logic
+#     This is a list of attrsets of strings. While P4_16 is a (very) simple
+#     language, trying to format sequential logic in Nix is akin to painting
+#     with a needle. It is possible, although very slow, tedious and needlessly
+#     complicated. As such it was decided that the best course of action is to
+#     have a list of attrsets in order to both keep a sequential logic order and
+#     to allow for flexibility in the model.
+#
+#
+#  Some attributes use a format such as a list of attributes. This is done in
+#  order to keep the order of statements, which is incredibly important in
+#  sequential structures like structs or headers. Attributes or list are
+#  otherwise used depending on the most readable results for both. 
+#  Helpers are defined in helpers.nix and may provide some help in writing P4
+#  programs. Those can be inherited in your source attribute in order to create
+#  a derivation, as seen in tests.nix.
 with lib;
 
 {
@@ -27,8 +71,8 @@ with lib;
     };
 
     target = mkOption {
-      type = types.enum [ "v1switch" "tbd" ];
-      default = "v1switch";
+      type = types.enum [ "v1switch" "null" ];
+      default = "null";
       description = ''
         P4's deployment target. Defaults to the standard software swicth implementation.
       '';
