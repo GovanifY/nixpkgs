@@ -33,9 +33,8 @@ let
     ];
   };
 in
-{
   p4Platform.mkProgram { 
+    name = "test";
     src = (p4Platform.runTranspiler 
-      { p4Source = source; }) 
+      { p4Source = source; }); 
   }
-}

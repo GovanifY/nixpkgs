@@ -5,7 +5,8 @@
 
 { buildInputs ? []
 , nativeBuildInputs ? []
-, src,
+, src
+, name 
 
 , meta ? {}, ... } @ args:
 
@@ -13,12 +14,14 @@
 with builtins;
 
 let
+  source = writeTextFile {
+    name = "default.p4";
+    text = src;
+  };
+
   package = stdenv.mkDerivation ({
 
-    source = writeTextFile {
-      name = "default.p4";
-      text = src;
-    };
+    name = name;
 
     nativeBuildInputs = [ p4c ] ++ nativeBuildInputs;
     buildInputs = buildInputs;
@@ -26,7 +29,7 @@ let
 
     buildPhase = ''
       cp -a ${source} default.p4
-      ${pkgs.p4c}/bin/p4c --target bmv2 --arch v1model default.p4
+      ${p4c}/bin/p4c --target bmv2 --arch v1model default.p4
     '';
 
     installPhase = ''

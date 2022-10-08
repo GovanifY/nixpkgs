@@ -113,7 +113,7 @@ let
         (
       '' + mkCallStack logic + ''
 
-        ) main;'';
+        ) main;''
     else "";
 
   # Concatenates the logic functions into a single sequential block.
