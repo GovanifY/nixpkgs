@@ -11,6 +11,7 @@
 with import <nixpkgs> {};
 with pkgs.p4Platform.helpers.header;
 with pkgs.p4Platform.helpers.typedef;
+with pkgs.p4Platform.helpers.const;
 with pkgs;
 let 
   source = {
@@ -19,39 +20,32 @@ let
     # set but as the target logic isn't stabilized yet i'm including it manually
     include = [ "core.p4" "ebpf_model.p4" ];
 
-    define = { "test" = "test2"; };
     headers = {
-      const = {
-        "MAX_HOPS" = { type = "int"; value = "10"; };
-        "STANDARD" = { type = "int"; value = "0"; };
-        "HOPS" = { type = "int"; value = "1"; };
+      header = {
+        inherit ethernet_h ipv4_no_options_h icmp_h;
       };
 
-      header = { "type_t".content = [ { "tag" = "bit<8>"; } ]; 
-        "hop_t".content = [ 
-          { "port" = "bit<8>"; } 
-          { "bos" = "bit<8>"; } 
-        ]; 
-        "standard_t".content = [ 
-          { "src" = "bit<8>"; } 
-          { "dst" = "bit<8>"; } 
-        ]; 
+      typedef = { 
+        inherit macAddr ip4Addr;
+      };
+
+      const = {
+        inherit ETH_TYPE_IPV4 IPV4_PROTOCOL_ICMP;
       };
 
       struct = {
         "headers_t".content = [
-          { "type" = "type_t"; }
-          { "hops" = "hop_t[MAX_HOPS]"; }
-          { "standard" = "standard_t"; }
+          { "ethernet" = "ethernet_h"; }
+          { "ip" = "ipv4_no_options_h"; }
+          { "icmp" = "icmp_h"; }
         ];
-        "meta_t".content = [];
       };
-      typedef = { "standard_metadata_t" = "std_meta_t"; };
+
     };
     target = "ebpf";
     logic = [{
       "MyParser" = ''
-        parser MyParser(packet_in p, out Headers_t headers) {
+        parser MyParser(packet_in p, out headers_t headers) {
             state start {
                 transition parse_ethernet;
             }
@@ -59,7 +53,7 @@ let
             state parse_ethernet {
                 p.extract(headers.ethernet);
                 transition select (headers.ethernet.etherType) {
-                    TYPE_IPV4 : parse_ip;
+                    ETH_TYPE_IPV4 : parse_ip;
                     default   : accept;
                 }
             }
@@ -67,7 +61,7 @@ let
             state parse_ip {
                 p.extract(headers.ip);
                 transition select (headers.ip.protocol) {
-                    TYPE_ICMP : parse_icmp;
+                    IPV4_PROTOCOL_ICMP : parse_icmp;
                     default   : accept;
                 }
             }
@@ -81,7 +75,7 @@ let
       }
       {
         "MyPipe" = ''
-          control MyPipe(inout Headers_t headers, out bool pass) {
+          control MyPipe(inout headers_t headers, out bool pass) {
               apply {
                   pass = true;
                   if(headers.icmp.isValid()) {

@@ -9,11 +9,24 @@
     "ip6Addr" = "bit<128>";
   };
 
+  const = {
+    "ETH_TYPE_IPV4" = { type = "bit<16>"; value = "0x800"; };
+
+    "IPV4_PROTOCOL_ICMP" = { type = "bit<8>"; value = "1"; };
+  };
+
   header = {
     "ethernet_h".content = [
       { "dstAddr" = "macAddr"; }
       { "srcAddr" = "macAddr"; }
       { "etherType" = "bit<16>"; }
+    ];
+
+    "icmp_h".content = [
+      { "type" = "bit<8>"; }
+      { "code" = "bit<8>"; }
+      { "checksum" = "bit<16>"; }
+      { "icmp_header" = "bit<32>"; }
     ];
 
     "ipv4_no_options_h".content = [

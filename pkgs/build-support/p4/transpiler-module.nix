@@ -58,7 +58,7 @@ with lib;
     };
 
     define = mkOption {
-      default = [ ];
+      default = { };
       description = ''
         The list of #define and their value to be interpreted by the
         preprocessor.
