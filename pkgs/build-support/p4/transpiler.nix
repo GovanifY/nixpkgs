@@ -12,6 +12,7 @@ let
   # syntax mapper.
   targets_mapping = { v1switch = "V1Switch";
                       ebpf = "ebpfFilter";
+                      psa = "PSA_Switch";
                     };
 
   #TODO: add additional fields and checks here, eg include for v1switch target!

@@ -17,7 +17,7 @@ let
 
     # core is included by default anv v1model will be if the target is correctly
     # set but as the target logic isn't stabilized yet i'm including it manually
-    include = [ "core.p4" "ebpf_model.p4" ];
+    include = [ "core.p4" "psa.p4" ];
 
     define = { "test" = "test2"; };
     headers = {
@@ -48,89 +48,140 @@ let
       };
       typedef = { "standard_metadata_t" = "std_meta_t"; };
     };
-    target = "v1switch";
+    target = "psa";
     logic = [{
-      "MyParser" = ''
-          parser MyParser(packet_in pkt, out headers_t hdr, inout meta_t meta, inout std_meta_t std_meta) {
-              state start {
-                  pkt.extract(hdr.type);
-                  transition select(hdr.type.tag) {
-                      HOPS: parse_hops;
-                      STANDARD: parse_standard;
-                      default: accept;
-                  }
+      "packet_parser" = ''
+        parser packet_parser(packet_in packet, out headers_t headers, inout local_metadata_t local_metadata, in psa_ingress_parser_input_metadata_t standard_metadata, in empty_metadata_t resub_meta, in empty_metadata_t recirc_meta) {
+            state start {
+                transition parse_ethernet;
+            }
+            state parse_ethernet {
+                packet.extract(headers.ethernet);
+                transition parser_ipv4;
+            }
+            state parser_ipv4 {
+                packet.extract(headers.ipv4);
+                transition accept;
+            }
+        }
+        '';
+      }
+      {
+        "ingress" = ''
+          control ingress(inout headers_t headers, inout local_metadata_t local_metadata1, in psa_ingress_input_metadata_t standard_metadata, inout psa_ingress_output_metadata_t ostd) {
+              InternetChecksum() csum; 
+              action vxlan_encap(
+                  bit<48> ethernet_dst_addr,
+                  bit<48> ethernet_src_addr,
+                  bit<16> ethernet_ether_type,
+                  bit<8> ipv4_ver_ihl,
+                  bit<8> ipv4_diffserv,
+                  bit<16> ipv4_total_len,
+                  bit<16> ipv4_identification,
+                  bit<16> ipv4_flags_offset,
+                  bit<8> ipv4_ttl,
+                  bit<8> ipv4_protocol,
+                  bit<16> ipv4_hdr_checksum,
+                  bit<32> ipv4_src_addr,
+                  bit<32> ipv4_dst_addr,
+                  bit<16> udp_src_port,
+                  bit<16> udp_dst_port,
+                  bit<16> udp_length,
+                  bit<16> udp_checksum,
+                  bit<8> vxlan_flags,
+                  bit<24> vxlan_reserved,
+                  bit<24> vxlan_vni,
+                  bit<8> vxlan_reserved2,
+                  bit<32> port_out
+              ) {
+                  headers.outer_ethernet.src_addr = ethernet_src_addr;
+                  headers.outer_ethernet.dst_addr = ethernet_dst_addr;
+
+                  headers.outer_ethernet.ether_type = ethernet_ether_type;
+                  headers.outer_ipv4.ver_ihl = ipv4_ver_ihl; 
+                  headers.outer_ipv4.diffserv = ipv4_diffserv; 
+                  headers.outer_ipv4.total_len = ipv4_total_len; 
+                  headers.outer_ipv4.identification = ipv4_identification; 
+                  headers.outer_ipv4.flags_offset = ipv4_flags_offset; 
+                  headers.outer_ipv4.ttl = ipv4_ttl; 
+                  headers.outer_ipv4.protocol = ipv4_protocol; 
+                  headers.outer_ipv4.hdr_checksum = ipv4_hdr_checksum; 
+                  headers.outer_ipv4.src_addr = ipv4_src_addr; 
+                  headers.outer_ipv4.dst_addr = ipv4_dst_addr;
+                  headers.outer_udp.src_port = udp_src_port;
+                  headers.outer_udp.dst_port = udp_dst_port;
+                  headers.outer_udp.length = udp_length;
+                  headers.outer_udp.checksum = udp_checksum;
+                  headers.vxlan.flags = vxlan_flags;
+                  headers.vxlan.reserved = vxlan_reserved;
+                  headers.vxlan.vni = vxlan_vni;
+                  headers.vxlan.reserved2 = vxlan_reserved2;
+                  ostd.egress_port = (PortId_t)port_out;
+                  csum.add({headers.outer_ipv4.hdr_checksum, headers.ipv4.total_len});
+                  headers.outer_ipv4.hdr_checksum = csum.get();
+                  headers.outer_ipv4.total_len = headers.outer_ipv4.total_len + headers.ipv4.total_len;
+                  headers.outer_udp.length = headers.outer_udp.length + headers.ipv4.total_len;
               }
-              state parse_hops {
-                  pkt.extract(hdr.hops.next);
-                  transition select(hdr.hops.last.bos) {
-                      1: parse_standard;
-                      default: parse_hops;
-                  }
+              action drop(){
+                  ostd.egress_port = (PortId_t)4;
               }
-              
-              state parse_standard {
-                  pkt.extract(hdr.standard);
-                  transition accept;
+              table vxlan {
+                  key = {
+                      headers.ethernet.dst_addr: exact;
+                  }
+                  actions = {
+                      vxlan_encap;
+                      drop;
+                  }
+                  const default_action = drop;
+                  size =  1024 * 1024;
+              }
+
+              apply {
+                  vxlan.apply();
+              }
+          }
+          '';
+        }
+      {
+        "packet_deparser" = ''
+          control packet_deparser(packet_out packet, out empty_metadata_t clone_i2e_meta, out empty_metadata_t resubmit_meta, out empty_metadata_t normal_meta, inout headers_t headers, in local_metadata_t local_metadata, in psa_ingress_output_metadata_t istd) {
+              apply {
+                  packet.emit(headers.outer_ethernet);
+                  packet.emit(headers.outer_ipv4);
+                  packet.emit(headers.outer_udp);
+                  packet.emit(headers.outer_vxlan);
+                  packet.emit(headers.ethernet);
+                  packet.emit(headers.ipv4);
               }
           }
         '';
       }
-      {
-        "MyVerifyChecksum" = ''
-          control MyVerifyChecksum(inout headers_t hdr, inout meta_t meta) {
-              apply { }
-          }
-        ''; 
-      }
-      {
-        "MyIngress" = ''
-          control MyIngress(inout headers_t hdr, inout meta_t meta, inout std_meta_t std_meta) {
-            action allow() { }
-            action deny() { std_meta.egress_spec = 9w511; }
-            table acl {
-              key = { hdr.standard.src : exact; hdr.standard.dst : exact; }
-              actions = { allow; deny; }
-              const entries = { (0xCC, 0xDD) : deny(); }
-              default_action = allow();
+  { 
+          "egress_parser" = ''
+            parser egress_parser(packet_in buffer, out headers_t headers, inout local_metadata_t local_metadata, in psa_egress_parser_input_metadata_t istd, in empty_metadata_t normal_meta, in empty_metadata_t clone_i2e_meta, in empty_metadata_t clone_e2e_meta) {
+                state start {
+                    transition accept;
+                }
             }
-            apply {
-              std_meta.egress_spec = (bit<9>) hdr.hops[0].port;
-              hdr.hops.pop_front(1);
-              if (!hdr.hops[0].isValid()) {
-                  hdr.type.tag = 0x00;
-              }
-              acl.apply();
+            '';
+        }
+
+              {
+          "egress" = ''
+            control egress(inout headers_t headers, inout local_metadata_t local_metadata, in psa_egress_input_metadata_t istd, inout psa_egress_output_metadata_t ostd) {
+                apply {
+                }
             }
-          }
-        ''; 
-      }
-
-      {
-        "MyEgress" = ''
-          control MyEgress(inout headers_t hdr, inout meta_t meta, inout std_meta_t std_meta) {
-              apply { }
-          }
-        ''; 
-      }
-
-      {
-        "MyComputeChecksum" = ''
-          control MyComputeChecksum(inout headers_t hdr, inout meta_t meta) {
-              apply { }
-          }
-        ''; 
-      }
-      {
-        "MyDeparser" = ''
-          control MyDeparser(packet_out pkt, in headers_t hdr) {
-              apply {
-                  pkt.emit(hdr.type);
-                  pkt.emit(hdr.hops);
-                  pkt.emit(hdr.standard);
-              }
-          }
-        ''; 
-      }
+          '';
+        }
+              { "egress_deparser" = ''
+            control egress_deparser(packet_out packet, out empty_metadata_t clone_e2e_meta, out empty_metadata_t recirculate_meta, inout headers_t headers, in local_metadata_t local_metadata, in psa_egress_output_metadata_t istd, in psa_egress_deparser_input_metadata_t edstd) {
+                apply {
+                }
+            }
+          '';
+        }
 
     ];
   };
@@ -141,8 +192,6 @@ in
       { p4Source = source; }); 
     p4Target = "dpdk-psa";
   }
-
-
 
 
 
