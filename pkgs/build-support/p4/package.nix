@@ -1,6 +1,13 @@
 { lib
 , stdenv
 , p4c
+, dpdk
+, clang
+, which
+, libllvm
+, libbpf
+, pkg-config
+, buildPackages
 , writeTextFile }:
 
 { buildInputs ? []
@@ -25,7 +32,9 @@ let
     name = name;
 
     nativeBuildInputs = nativeBuildInputs;
-    buildInputs = [ p4c ] ++ buildInputs;
+    buildInputs = [ p4c ] ++ buildInputs ++ lib.optionals (p4Target == "dpdk-psa") [
+      dpdk pkg-config ] ++ lib.optionals (p4Target == "ebpf-v1model") [ clang
+      which libllvm libbpf ];
     phases = [ "buildPhase" "installPhase" ];
 
     
@@ -34,17 +43,27 @@ let
     '' + (if p4Target == "bmv2-psa" then
         "${p4c}/bin/p4c --target bmv2 --arch psa default.p4"
       else if p4Target == "bmv2-v1model" then
-        "${p4c}/bin/p4c --target bmv2 --arch v1model default.p4"
+      ''
+        ${p4c}/bin/p4c --target bmv2 --arch v1model default.p4
+        mv default.json out.json
+      ''
       else if p4Target == "ebpf-v1model" then
-        "${p4c}/bin/p4c --target ebpf --arch v1model default.p4"
+      ''
+        #${p4c}/bin/p4c --target ebpf --arch v1model default.p4"
+        make -f ${p4c.src}/backends/ebpf/runtime/kernel.mk BPFOBJ=out.o P4FILE=default.p4
+      ''
       else if p4Target == "dpdk-psa" then
-        "${p4c}/bin/p4c --target dpdk --arch psa default.p4"
+      ''
+        ${p4c}/bin/p4c --target dpdk --arch psa default.p4
+        mv default.spec default.c
+        ${buildPackages.stdenv.cc}/bin/cc $(CFLAGS) default.c -o default $(LDFLAGS) $(pkg-config --libs libdpdk)
+      ''
       else abort "Unrecognized P4 Target tuple: ${p4Target}");
 
     installPhase = ''
       mkdir -p $out/
       cp -a * $out/
-      rm -rf $out/*.p4 $out/*.p4i $out/env-vars
+      rm -rf $out/*.p4 $out/*.p4i $out/*.h $out/*.c $out/*.bc $out/env-vars
     '';
 
     meta = {
