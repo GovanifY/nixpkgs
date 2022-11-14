@@ -40,6 +40,10 @@ stdenv.mkDerivation rec {
   postFetch = ''
     rm -rf backends/ebpf/runtime/contrib/libbpf
     rm -rf control-plane/p4runtime
+    '' + lib.optionalString enableBPF ''
+    # required to build eBPF binaries
+    mkdir -p $out/share/p4c
+    cp -rf backens/ebpf $out/share/p4c
   '';
 
   cmakeFlags = [
