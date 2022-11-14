@@ -120,11 +120,9 @@ let
 
   # Concatenates the logic functions into a single sequential block.
   mkCallStack = logic:
-    concatStringsSep ''
-      (),
-    ''
-    (imap1 (_: v: (concatStringsSep "" (mapAttrsToList (name: value: name) v)))
-      logic) + "()";
+    concatStringsSep "," (imap1 (_: v: (concatStringsSep "" (mapAttrsToList (name: value: name + (if
+    value == null then "" else "()")) v)))
+      logic);
 
   mkTargetSub = sub: 
     concatStringsSep "\n" (mapAttrsToList (name: value: name + "(" + (mkCallStack value.content) + ")
