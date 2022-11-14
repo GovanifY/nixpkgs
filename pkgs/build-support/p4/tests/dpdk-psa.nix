@@ -52,7 +52,7 @@ let
       };
     };
     target = "psa";
-    logic = [{
+    logic.main = [{
       "packet_parser" = ''
         parser packet_parser(packet_in packet, out headers_t headers, inout local_metadata_t local_metadata, in psa_ingress_parser_input_metadata_t standard_metadata, in empty_metadata_t resub_meta, in empty_metadata_t recirc_meta) {
             state start {

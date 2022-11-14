@@ -107,8 +107,6 @@ let
     (imap1 (_: v: (concatStringsSep "" (mapAttrsToList (name: value: value) v)))
       logic);
 
-  # XXX: I am assuming that if you want to setup a target you want it to be the
-  # main logic, does this assumption always holds true?
   # Creates the global main scope of the P4 program with the logic defined.
   mkTarget = target: logic:
     if (target != "null") then
@@ -127,13 +125,28 @@ let
     (imap1 (_: v: (concatStringsSep "" (mapAttrsToList (name: value: name) v)))
       logic) + "()";
 
+  mkTargetSub = sub: 
+    concatStringsSep "\n" (mapAttrsToList (name: value: name + "(" + (mkCallStack value.content) + ")
+    " + value.name + ";" ) sub);
+
+  mkSub = sub:
+    concatStringsSep "\n\n"
+    (imap1 (_: v: (concatStringsSep "" (mapAttrsToList (name: value: value) v)))
+      logic);
+    mkSub = sub:
+
+
   # Final assembly of the source file needed to, eg, create a derivation.
   mkSource = ''
     ${mkHeaders p4_attr.include p4_attr.define p4_attr.headers}
 
-    ${mkLogic p4_attr.logic}
+    ${mkLogic p4_attr.logic.main}
 
-    ${mkTarget p4_attr.target p4_attr.logic}
+    ${mkSub p4_attr.logic.sub}
+
+    ${mkTargetSub p4_attr.logic.sub}
+
+    ${mkTarget p4_attr.target p4_attr.logic.main}
   '';
 in 
   mkSource

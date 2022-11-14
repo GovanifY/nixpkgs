@@ -43,7 +43,7 @@ let
 
     };
     target = "ebpf";
-    logic = [{
+    logic.main = [{
       "MyParser" = ''
         parser MyParser(packet_in p, out headers_t headers) {
             state start {

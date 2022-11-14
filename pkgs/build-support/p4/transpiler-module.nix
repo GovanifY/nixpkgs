@@ -125,6 +125,7 @@ with lib;
         '';
       };
       sub = mkOption {
+        default = { };
         type = types.attrsOf (types.submodule {
           options = {
             name = mkOption {

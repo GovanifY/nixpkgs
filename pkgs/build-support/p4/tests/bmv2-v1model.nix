@@ -49,7 +49,7 @@ let
       typedef = { "std_meta_t" = "standard_metadata_t"; };
     };
     target = "v1switch";
-    logic = [{
+    logic.main = [{
       "MyParser" = ''
           parser MyParser(packet_in pkt, out headers_t hdr, inout meta_t meta, inout std_meta_t std_meta) {
               state start {
