@@ -130,11 +130,11 @@ let
     " + value.name + ";" ) sub);
 
   mkSub = sub:
+    concatStringsSep "\n\n" (mapAttrsToList (name: value: (
     concatStringsSep "\n\n"
     (imap1 (_: v: (concatStringsSep "" (mapAttrsToList (name: value: value) v)))
-      logic);
-    mkSub = sub:
-
+    value.content)))
+      sub);
 
   # Final assembly of the source file needed to, eg, create a derivation.
   mkSource = ''
