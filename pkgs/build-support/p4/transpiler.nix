@@ -10,7 +10,9 @@ let
   # This is the set representing the possible targets (eg top-level packages)
   # that can be automatically deployed using nix. This is a purely nix->P4
   # syntax mapper.
-  targets_mapping = { v1switch = "V1Switch"; };
+  targets_mapping = { v1switch = "V1Switch";
+                      ebpf = "ebpfFilter";
+                    };
 
   #TODO: add additional fields and checks here, eg include for v1switch target!
 

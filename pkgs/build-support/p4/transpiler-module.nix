@@ -71,7 +71,7 @@ with lib;
     };
 
     target = mkOption {
-      type = types.enum [ "v1switch" "null" ];
+      type = types.enum [ "v1switch" "ebpf" "null" ];
       default = "null";
       description = ''
         P4's deployment target. Defaults to the standard software swicth implementation.
