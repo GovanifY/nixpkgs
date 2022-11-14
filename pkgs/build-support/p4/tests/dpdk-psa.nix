@@ -19,34 +19,37 @@ let
     # set but as the target logic isn't stabilized yet i'm including it manually
     include = [ "core.p4" "psa.p4" ];
 
-    define = { "test" = "test2"; };
     headers = {
-      const = {
-        "MAX_HOPS" = { type = "int"; value = "10"; };
-        "STANDARD" = { type = "int"; value = "0"; };
-        "HOPS" = { type = "int"; value = "1"; };
+      header = {
+        inherit ethernet_h ipv4_no_options_h udp_h;
+        "vxlan_t".content = [
+          { "flags" = "bit<8>"; }
+          { "reserved" = "bit<24>"; }
+          { "vni" = "bit<24>"; }
+          { "reserved2" = "bit<8>"; }
+        ];
       };
 
-      header = { "type_t".content = [ { "tag" = "bit<8>"; } ]; 
-        "hop_t".content = [ 
-          { "port" = "bit<8>"; } 
-          { "bos" = "bit<8>"; } 
-        ]; 
-        "standard_t".content = [ 
-          { "src" = "bit<8>"; } 
-          { "dst" = "bit<8>"; } 
-        ]; 
+      typedef = { 
+        inherit macAddr ip4Addr;
       };
 
       struct = {
-        "headers_t".content = [
-          { "type" = "type_t"; }
-          { "hops" = "hop_t[MAX_HOPS]"; }
-          { "standard" = "standard_t"; }
+        empty_metadata_t.content = [];
+        local_metadata_t.content = [
+          { "dst_addr" = "macAddr"; }
+          { "src_addr" = "macAddr"; }
         ];
-        "meta_t".content = [];
+        headers_t.content = [
+          { "ethernet" = "ethernet_h"; }
+          { "ipv4" = "ipv4_no_options_h"; }
+          { "vxlan" = "vxlan_t"; }
+          { "outer_ethernet" = "ethernet_h"; }
+          { "outer_ipv4" = "ipv4_no_options_h"; }
+          { "outer_udp" = "udp_h"; }
+          { "outer_vxlan" = "vxlan_t"; }
+        ];
       };
-      typedef = { "standard_metadata_t" = "std_meta_t"; };
     };
     target = "psa";
     logic = [{
@@ -74,11 +77,13 @@ let
                   bit<48> ethernet_dst_addr,
                   bit<48> ethernet_src_addr,
                   bit<16> ethernet_ether_type,
-                  bit<8> ipv4_ver_ihl,
+                  bit<4> ipv4_version,
+                  bit<4> ipv4_ihl,
                   bit<8> ipv4_diffserv,
                   bit<16> ipv4_total_len,
                   bit<16> ipv4_identification,
-                  bit<16> ipv4_flags_offset,
+                  bit<3> ipv4_flags,
+                  bit<13> ipv4_fragOffset,
                   bit<8> ipv4_ttl,
                   bit<8> ipv4_protocol,
                   bit<16> ipv4_hdr_checksum,
@@ -94,22 +99,24 @@ let
                   bit<8> vxlan_reserved2,
                   bit<32> port_out
               ) {
-                  headers.outer_ethernet.src_addr = ethernet_src_addr;
-                  headers.outer_ethernet.dst_addr = ethernet_dst_addr;
+                  headers.outer_ethernet.srcAddr = ethernet_src_addr;
+                  headers.outer_ethernet.dstAddr = ethernet_dst_addr;
 
-                  headers.outer_ethernet.ether_type = ethernet_ether_type;
-                  headers.outer_ipv4.ver_ihl = ipv4_ver_ihl; 
+                  headers.outer_ethernet.etherType = ethernet_ether_type;
+                  headers.outer_ipv4.version = ipv4_version; 
+                  headers.outer_ipv4.ihl = ipv4_ihl; 
                   headers.outer_ipv4.diffserv = ipv4_diffserv; 
-                  headers.outer_ipv4.total_len = ipv4_total_len; 
+                  headers.outer_ipv4.totalLen = ipv4_total_len; 
                   headers.outer_ipv4.identification = ipv4_identification; 
-                  headers.outer_ipv4.flags_offset = ipv4_flags_offset; 
+                  headers.outer_ipv4.flags = ipv4_flags; 
+                  headers.outer_ipv4.fragOffset = ipv4_fragOffset; 
                   headers.outer_ipv4.ttl = ipv4_ttl; 
                   headers.outer_ipv4.protocol = ipv4_protocol; 
-                  headers.outer_ipv4.hdr_checksum = ipv4_hdr_checksum; 
-                  headers.outer_ipv4.src_addr = ipv4_src_addr; 
-                  headers.outer_ipv4.dst_addr = ipv4_dst_addr;
-                  headers.outer_udp.src_port = udp_src_port;
-                  headers.outer_udp.dst_port = udp_dst_port;
+                  headers.outer_ipv4.hdrChecksum = ipv4_hdr_checksum; 
+                  headers.outer_ipv4.srcAddr = ipv4_src_addr; 
+                  headers.outer_ipv4.dstAddr = ipv4_dst_addr;
+                  headers.outer_udp.srcPort = udp_src_port;
+                  headers.outer_udp.dstPort = udp_dst_port;
                   headers.outer_udp.length = udp_length;
                   headers.outer_udp.checksum = udp_checksum;
                   headers.vxlan.flags = vxlan_flags;
@@ -117,17 +124,17 @@ let
                   headers.vxlan.vni = vxlan_vni;
                   headers.vxlan.reserved2 = vxlan_reserved2;
                   ostd.egress_port = (PortId_t)port_out;
-                  csum.add({headers.outer_ipv4.hdr_checksum, headers.ipv4.total_len});
-                  headers.outer_ipv4.hdr_checksum = csum.get();
-                  headers.outer_ipv4.total_len = headers.outer_ipv4.total_len + headers.ipv4.total_len;
-                  headers.outer_udp.length = headers.outer_udp.length + headers.ipv4.total_len;
+                  csum.add({headers.outer_ipv4.hdrChecksum, headers.ipv4.totalLen});
+                  headers.outer_ipv4.hdrChecksum = csum.get();
+                  headers.outer_ipv4.totalLen = headers.outer_ipv4.totalLen + headers.ipv4.totalLen;
+                  headers.outer_udp.length = headers.outer_udp.length + headers.ipv4.totalLen;
               }
               action drop(){
                   ostd.egress_port = (PortId_t)4;
               }
               table vxlan {
                   key = {
-                      headers.ethernet.dst_addr: exact;
+                      headers.ethernet.dstAddr: exact;
                   }
                   actions = {
                       vxlan_encap;
