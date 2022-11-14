@@ -52,7 +52,8 @@ let
       };
     };
     target = "psa";
-    logic.main = [{
+    logic = {
+      sub.IngressPipeline = { name = "ip"; content = [{
       "packet_parser" = ''
         parser packet_parser(packet_in packet, out headers_t headers, inout local_metadata_t local_metadata, in psa_ingress_parser_input_metadata_t standard_metadata, in empty_metadata_t resub_meta, in empty_metadata_t recirc_meta) {
             state start {
@@ -164,7 +165,9 @@ let
           }
         '';
       }
-  { 
+    ]; };
+    sub.EgressPipeline = { name = "ep"; content = [
+      { 
           "egress_parser" = ''
             parser egress_parser(packet_in buffer, out headers_t headers, inout local_metadata_t local_metadata, in psa_egress_parser_input_metadata_t istd, in empty_metadata_t normal_meta, in empty_metadata_t clone_i2e_meta, in empty_metadata_t clone_e2e_meta) {
                 state start {
@@ -192,6 +195,10 @@ let
 
     ];
   };
+  main = [{"ip" = null; } { "PacketReplicationEngine()" = null;} { "ep" = null;} {
+    "BufferingQueueingEngine()" = null; } ];
+};
+};
 in
   p4Platform.mkProgram { 
     name = "test";

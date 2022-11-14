@@ -81,7 +81,7 @@ with lib;
 
     logic = {
       main = mkOption {
-        type = types.listOf (types.nullOr (types.attrsOf types.str));
+        type = types.listOf (types.attrsOf (types.nullOr types.str));
         default = [ ];
         description = ''
           The functions that get executed by P4 in order.

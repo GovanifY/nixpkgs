@@ -104,7 +104,8 @@ let
   # reasoning behind the format of this and other parts of the transpiler.
   mkLogic = logic:
     concatStringsSep "\n\n"
-    (imap1 (_: v: (concatStringsSep "" (mapAttrsToList (name: value: value) v)))
+    (imap1 (_: v: (concatStringsSep "" (mapAttrsToList (name: value: (if value
+    == null then "" else value)) v)))
       logic);
 
   # Creates the global main scope of the P4 program with the logic defined.
