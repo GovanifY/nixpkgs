@@ -43,7 +43,7 @@ stdenv.mkDerivation rec {
     '' + lib.optionalString enableBPF ''
     # required to build eBPF binaries
     mkdir -p $out/share/p4c
-    cp -rf backens/ebpf $out/share/p4c
+    cp -rf backends/ebpf $out/share/p4c
   '';
 
   cmakeFlags = [

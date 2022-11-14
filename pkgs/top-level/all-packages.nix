@@ -2308,6 +2308,8 @@ with pkgs;
 
   bmap-tools = callPackage ../tools/misc/bmap-tools { };
 
+  bmv2 = callPackage ../development/misc/bmv2 { };
+
   bonnmotion = callPackage ../development/tools/misc/bonnmotion { };
 
   bonnie = callPackage ../tools/filesystems/bonnie {
