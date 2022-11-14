@@ -64,8 +64,8 @@ with lib;
         preprocessor.
       '';
       type = types.attrsOf types.str;
-      example = { 
-        "BLOOM_FILTER_ENTRIES" = "4096"; 
+      example = {
+        "BLOOM_FILTER_ENTRIES" = "4096";
         "BLOOM_FILTER_BIT_WIDTH" = "1";
       };
     };
@@ -79,49 +79,71 @@ with lib;
       example = "v1switch";
     };
 
-    logic = mkOption {
-      type = types.listOf (types.attrsOf types.str);
-      default = [ ];
-      description = ''
-        The functions that get executed by P4 in order.
-      '';
-      example = ''
-        [ 
-          { "MyParser" = '''
-            parser MyParser(packet_in packet,
-                            out headers hdr,
-                            inout metadata meta,
-                            inout standard_metadata_t standard_metadata) {
+    logic = {
+      main = mkOption {
+        type = types.listOf (types.nullOr (types.attrsOf types.str));
+        default = [ ];
+        description = ''
+          The functions that get executed by P4 in order.
+        '';
+        example = ''
+          [ 
+            { "MyParser" = '''
+              parser MyParser(packet_in packet,
+                              out headers hdr,
+                              inout metadata meta,
+                              inout standard_metadata_t standard_metadata) {
 
-                state start {
-                    transition parse_ethernet;
-                }
+                  state start {
+                      transition parse_ethernet;
+                  }
 
-                state parse_ethernet {
-                    packet.extract(hdr.ethernet);
-                    transition select(hdr.ethernet.etherType) {
-                        TYPE_IPV4: parse_ipv4;
-                        default: accept;
-                    }
-                }
+                  state parse_ethernet {
+                      packet.extract(hdr.ethernet);
+                      transition select(hdr.ethernet.etherType) {
+                          TYPE_IPV4: parse_ipv4;
+                          default: accept;
+                      }
+                  }
 
-                state parse_ipv4 {
-                    packet.extract(hdr.ipv4);
-                    transition select(hdr.ipv4.protocol){
-                        TYPE_TCP: tcp;
-                        default: accept;
-                    }
-                }
+                  state parse_ipv4 {
+                      packet.extract(hdr.ipv4);
+                      transition select(hdr.ipv4.protocol){
+                          TYPE_TCP: tcp;
+                          default: accept;
+                      }
+                  }
 
-                state tcp {
-                   packet.extract(hdr.tcp);
-                   transition accept;
-                }
+                  state tcp {
+                     packet.extract(hdr.tcp);
+                     transition accept;
+                  }
+              }
+            ''';
             }
-          ''';
-          }
-        ];
-      '';
+          ];
+        '';
+      };
+      sub = mkOption {
+        type = types.attrsOf (types.submodule {
+          options = {
+            name = mkOption {
+              type = types.str;
+              description = ''
+                The name that will be used in your P4 program to refer to this
+                logic pipeline.
+              '';
+            };
+            content = mkOption {
+              type = types.listOf (types.attrsOf types.str);
+              description = ''
+                The content of the functions used by your logic pipeline. See
+                logic.main for examples.
+              '';
+            };
+          };
+        });
+      };
     };
 
     headers = {
@@ -130,8 +152,8 @@ with lib;
           The list of typedefs of the program.
         '';
         type = types.attrsOf types.str;
-        default = {};
-        example ={
+        default = { };
+        example = {
           "macAddr" = "bit<48>";
 
           "ip4Addr" = "bit<32>";
@@ -152,7 +174,7 @@ with lib;
             value = "0x800";
           };
 
-        "TYPE_TCP" = {
+          "TYPE_TCP" = {
             type = "bit<8>";
             value = "6";
           };
@@ -201,10 +223,7 @@ with lib;
         example = {
           "IP_h" = {
             union = true;
-            content = [
-              { "IPv4_h" = "v4"; }
-              { "IPv6_h" = "v6"; }
-            ];
+            content = [ { "IPv4_h" = "v4"; } { "IPv6_h" = "v6"; } ];
           };
         };
       };
@@ -215,9 +234,7 @@ with lib;
         '';
         default = { };
         type = types.attrsOf (types.listOf types.str);
-        example = {
-          "CloneType" = [ "I2E" "E2I" ];
-        };
+        example = { "CloneType" = [ "I2E" "E2I" ]; };
       };
 
       error = mkOption {
@@ -236,9 +253,9 @@ with lib;
           P4 source code of additional headers required.
         '';
         example = ''
-        #if MY_FANCY_OPTION
-          const bit<16> KEY = 0x725;
-        #endif
+          #if MY_FANCY_OPTION
+            const bit<16> KEY = 0x725;
+          #endif
         '';
       };
     };
