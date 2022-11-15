@@ -8,11 +8,11 @@
 # we can reuse modules that we will have created.
 
 # Run me with: NIX_PATH="nixpkgs=$NIXPKGS" nix-build pkgs/build-support/p4/tests.nix
-with import <nixpkgs> {};
+with import <nixpkgs> { };
 with pkgs.p4Platform.helpers.header;
 with pkgs.p4Platform.helpers.typedef;
 with pkgs;
-let 
+let
   source = {
 
     # core is included by default anv v1model will be if the target is correctly
@@ -22,20 +22,24 @@ let
     define = { "test" = "test2"; };
     headers = {
       const = {
-        "MAX_HOPS" = { type = "int"; value = "10"; };
-        "STANDARD" = { type = "int"; value = "0"; };
-        "HOPS" = { type = "int"; value = "1"; };
+        "MAX_HOPS" = {
+          type = "int";
+          value = "10";
+        };
+        "STANDARD" = {
+          type = "int";
+          value = "0";
+        };
+        "HOPS" = {
+          type = "int";
+          value = "1";
+        };
       };
 
-      header = { "type_t".content = [ { "tag" = "bit<8>"; } ]; 
-        "hop_t".content = [ 
-          { "port" = "bit<8>"; } 
-          { "bos" = "bit<8>"; } 
-        ]; 
-        "standard_t".content = [ 
-          { "src" = "bit<8>"; } 
-          { "dst" = "bit<8>"; } 
-        ]; 
+      header = {
+        "type_t".content = [{ "tag" = "bit<8>"; }];
+        "hop_t".content = [ { "port" = "bit<8>"; } { "bos" = "bit<8>"; } ];
+        "standard_t".content = [ { "src" = "bit<8>"; } { "dst" = "bit<8>"; } ];
       };
 
       struct = {
@@ -44,13 +48,14 @@ let
           { "hops" = "hop_t[MAX_HOPS]"; }
           { "standard" = "standard_t"; }
         ];
-        "meta_t".content = [];
+        "meta_t".content = [ ];
       };
       typedef = { "std_meta_t" = "standard_metadata_t"; };
     };
     target = "v1switch";
-    logic.main = [{
-      "MyParser" = ''
+    logic.main = [
+      {
+        "MyParser" = ''
           parser MyParser(packet_in pkt, out headers_t hdr, inout meta_t meta, inout std_meta_t std_meta) {
               state start {
                   pkt.extract(hdr.type);
@@ -80,7 +85,7 @@ let
           control MyVerifyChecksum(inout headers_t hdr, inout meta_t meta) {
               apply { }
           }
-        ''; 
+        '';
       }
       {
         "MyIngress" = ''
@@ -102,7 +107,7 @@ let
               acl.apply();
             }
           }
-        ''; 
+        '';
       }
 
       {
@@ -110,7 +115,7 @@ let
           control MyEgress(inout headers_t hdr, inout meta_t meta, inout std_meta_t std_meta) {
               apply { }
           }
-        ''; 
+        '';
       }
 
       {
@@ -118,7 +123,7 @@ let
           control MyComputeChecksum(inout headers_t hdr, inout meta_t meta) {
               apply { }
           }
-        ''; 
+        '';
       }
       {
         "MyDeparser" = ''
@@ -129,22 +134,14 @@ let
                   pkt.emit(hdr.standard);
               }
           }
-        ''; 
+        '';
       }
 
     ];
   };
-in
-  p4Platform.mkProgram { 
-    name = "test";
-    src = (p4Platform.runTranspiler 
-      { p4Source = source; }); 
-    p4Target = "bmv2-v1model";
-  }
-
-
-
-
-
-
+in p4Platform.mkProgram {
+  name = "test";
+  src = (p4Platform.runTranspiler { p4Source = source; });
+  p4Target = "bmv2-v1model";
+}
 

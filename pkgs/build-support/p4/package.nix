@@ -49,14 +49,12 @@ let
       ''
       else if p4Target == "ebpf-v1model" then
       ''
-        #${p4c}/bin/p4c --target ebpf --arch v1model default.p4"
         make -f ${p4c.src}/backends/ebpf/runtime/kernel.mk BPFOBJ=out.o P4FILE=default.p4
       ''
       else if p4Target == "dpdk-psa" then
       ''
         ${p4c}/bin/p4c --target dpdk --arch psa default.p4
-        mv default.spec default.c
-        ${buildPackages.stdenv.cc}/bin/cc $(CFLAGS) default.c -o default $(LDFLAGS) $(pkg-config --libs libdpdk)
+        mv default.spec out.spec 
       ''
       else abort "Unrecognized P4 Target tuple: ${p4Target}");
 
@@ -67,7 +65,8 @@ let
     '';
 
     meta = {
-      # TODO: change depending on targets here! 
+      # TODO: change depending on targets here when we add 
+      # dedicated hardware options ! 
       platforms = lib.platforms.linux;
     } // meta;
   });

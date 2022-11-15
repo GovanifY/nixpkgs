@@ -8,12 +8,14 @@
 # we can reuse modules that we will have created.
 
 # Run me with: NIX_PATH="nixpkgs=$NIXPKGS" nix-build pkgs/build-support/p4/tests.nix
-with import <nixpkgs> {};
+# You can also then instantiate a nixos vm, share the nix-store path, and load
+# the ebpf object! bpf_prog_load
+with import <nixpkgs> { };
 with pkgs.p4Platform.helpers.header;
 with pkgs.p4Platform.helpers.typedef;
 with pkgs.p4Platform.helpers.const;
 with pkgs;
-let 
+let
   source = {
 
     # core is included by default anv v1model will be if the target is correctly
@@ -21,17 +23,11 @@ let
     include = [ "core.p4" "ebpf_model.p4" ];
 
     headers = {
-      header = {
-        inherit ethernet_h ipv4_no_options_h icmp_h;
-      };
+      header = { inherit ethernet_h ipv4_no_options_h icmp_h; };
 
-      typedef = { 
-        inherit macAddr ip4Addr;
-      };
+      typedef = { inherit macAddr ip4Addr; };
 
-      const = {
-        inherit ETH_TYPE_IPV4 IPV4_PROTOCOL_ICMP;
-      };
+      const = { inherit ETH_TYPE_IPV4 IPV4_PROTOCOL_ICMP; };
 
       struct = {
         "headers_t".content = [
@@ -43,34 +39,35 @@ let
 
     };
     target = "ebpf";
-    logic.main = [{
-      "MyParser" = ''
-        parser MyParser(packet_in p, out headers_t headers) {
-            state start {
-                transition parse_ethernet;
-            }
+    logic.main = [
+      {
+        "MyParser" = ''
+          parser MyParser(packet_in p, out headers_t headers) {
+              state start {
+                  transition parse_ethernet;
+              }
 
-            state parse_ethernet {
-                p.extract(headers.ethernet);
-                transition select (headers.ethernet.etherType) {
-                    ETH_TYPE_IPV4 : parse_ip;
-                    default   : accept;
-                }
-            }
+              state parse_ethernet {
+                  p.extract(headers.ethernet);
+                  transition select (headers.ethernet.etherType) {
+                      ETH_TYPE_IPV4 : parse_ip;
+                      default   : accept;
+                  }
+              }
 
-            state parse_ip {
-                p.extract(headers.ip);
-                transition select (headers.ip.protocol) {
-                    IPV4_PROTOCOL_ICMP : parse_icmp;
-                    default   : accept;
-                }
-            }
+              state parse_ip {
+                  p.extract(headers.ip);
+                  transition select (headers.ip.protocol) {
+                      IPV4_PROTOCOL_ICMP : parse_icmp;
+                      default   : accept;
+                  }
+              }
 
-            state parse_icmp {
-                p.extract(headers.icmp);
-                transition accept;
-            }
-        }
+              state parse_icmp {
+                  p.extract(headers.icmp);
+                  transition accept;
+              }
+          }
         '';
       }
       {
@@ -88,17 +85,9 @@ let
 
     ];
   };
-in
-  p4Platform.mkProgram { 
-    name = "test";
-    src = (p4Platform.runTranspiler 
-      { p4Source = source; }); 
-    p4Target = "ebpf-v1model";
-  }
-
-
-
-
-
-
+in p4Platform.mkProgram {
+  name = "test";
+  src = (p4Platform.runTranspiler { p4Source = source; });
+  p4Target = "ebpf-v1model";
+}
 
