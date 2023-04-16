@@ -209,32 +209,49 @@ in {
 
   options = {
 
-    networking.p4.load_balancer = {
-        enable = mkOption {
-          type = types.bool;
-          default = false;
-          description = lib.mdDoc ''
-            Whether to enable a P4 load_balancer
-            blabla see https://github.com/p4lang/tutorials
-          '';
+    networking.p4.load-balancer = {
+      enable = mkOption {
+        type = types.bool;
+        default = false;
+        description = lib.mdDoc ''
+          Whether to enable a P4 load balancer.
+          This is a load balancer example using BMV2 as a target. 
+          It is based on https://github.com/p4lang/tutorials for
+          simplicity's sake. 
+          This load balancer uses P4Runtime in order to modify the control plane
+          as to be able to modify its state during runtime. Its
+          topology is available here:
+          https://github.com/p4lang/tutorials/tree/master/exercises/load_balance
+          .
+        '';
+      };
+      source = {
+        type = types.attrsOf types.anything;
+        default = balancer_source;
+        description = ''
+          The p4 program sent to the transpiler.
+          Please refer to build-support/p4 for its format.
+        '';
+      };
+    };
+
+    config = mkIf cfg.enable {
+      systemd.services.load-balancer = let
+        p4Program = p4Platform.mkProgram {
+          name = "load-balancer-example";
+          src = (p4Platform.runTranspiler { p4Source = cfg.source; });
+          p4Target = "bmv2-v1model";
         };
-        source = {
-          type = types.attrsOf types.anything;
-          default = balancer_source;
-          description = ''
-            bla
-          '';
+      in {
+        wantedBy = [ "default.target" ];
+        after = [ "network.target" ];
+        serviceConfig = {
+          Type = "simple";
+          ExecStart = "${pkgs.bmv2}/bin/simple_switch ${p4Program}/out.json";
         };
       };
-
-    config = {
-       
     };
-  };
 
-          #        p4Platform.mkProgram {
-          #          name = "test";
-          #          src = (p4Platform.runTranspiler { p4Source = source; });
-          #          p4Target = "bmv2-v1model";
+  };
 
 }

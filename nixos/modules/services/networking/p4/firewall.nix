@@ -227,41 +227,47 @@ in {
   options = {
 
     networking.p4.firewall = {
-          enable = mkOption {
-            type = types.bool;
-            default = false;
-            description = lib.mdDoc ''
-              Whether to enable a P4 firewall
-              blabla see https://github.com/p4lang/tutorials
-            '';
-          };
-          source = {
-            type = types.attrsOf types.anything;
-            default = firewall_source;
-            description = ''
-              bla
-            '';
-          };
-        };
+      enable = mkOption {
+        type = types.bool;
+        default = false;
+        description = lib.mdDoc ''
+          Whether to enable a P4 firewall.
+          This is a firewall example using BMV2 as a target. 
+          It is based on https://github.com/p4lang/tutorials for
+          simplicity's sake. 
+          This firewall uses P4Runtime in order to modify the control plane
+          as to be able to modify this firewall state during runtime. Its
+          topology is available here:
+          https://github.com/p4lang/tutorials/tree/master/exercises/firewall/pod-topo
+          .
+        '';
       };
-
-    config = mkIf cfg.enable {
-      systemd.services.p4-firewall = 
-      let
-        p4Program = p4Platform.mkProgram {
-          name = "firewall-example";
-          src = (p4Platform.runTranspiler { p4Source = cfg.source; });
-          p4Target = "bmv2-v1model";
-        };
-      in
-      {
-        wantedBy = [ "default.target" ];
-        after = [ "network.target" ];
-        serviceConfig = {
-          Type = "simple";
-          ExecStart = "${pkgs.bmv2}/bin/simple_switch -i 0@<iface0> -i 1@<iface1> ${p4Program}/out.json";
-        };
+      source = {
+        type = types.attrsOf types.anything;
+        default = firewall_source;
+        description = ''
+          The p4 program sent to the transpiler.
+          Please refer to build-support/p4 for its format.
+        '';
       };
     };
+  };
 
-          }
+  config = mkIf cfg.enable {
+    systemd.services.p4-firewall = let
+      p4Program = p4Platform.mkProgram {
+        name = "firewall-example";
+        src = (p4Platform.runTranspiler { p4Source = cfg.source; });
+        p4Target = "bmv2-v1model";
+      };
+    in {
+      wantedBy = [ "default.target" ];
+      after = [ "network.target" ];
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = "${pkgs.bmv2}/bin/simple_switch ${p4Program}/out.json";
+      };
+    };
+  };
+
+}
