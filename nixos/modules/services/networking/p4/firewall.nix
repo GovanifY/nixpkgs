@@ -4,6 +4,8 @@
 
 with lib;
 let
+  cfg = config.networking.firewall.p4;
+
   firewall_source = {
     include = [ "core.p4" "v1model.p4" ];
     headers = {
@@ -243,13 +245,23 @@ in {
         };
       };
 
-    config = {
-       
+    config = mkIf cfg.enable {
+      systemd.services.p4-firewall = 
+      let
+        p4Program = p4Platform.mkProgram {
+          name = "firewall-example";
+          src = (p4Platform.runTranspiler { p4Source = cfg.source; });
+          p4Target = "bmv2-v1model";
+        };
+      in
+      {
+        wantedBy = [ "default.target" ];
+        after = [ "network.target" ];
+        serviceConfig = {
+          Type = "simple";
+          ExecStart = "${pkgs.bmv2}/bin/simple_switch -i 0@<iface0> -i 1@<iface1> ${p4Program}/out.json";
+        };
+      };
     };
 
-          #        p4Platform.mkProgram {
-          #          name = "test";
-          #          src = (p4Platform.runTranspiler { p4Source = source; });
-          #          p4Target = "bmv2-v1model";
-
-}
+          }
