@@ -1,0 +1,240 @@
+# bla
+
+{ config, lib, pkgs, ... }:
+
+with lib;
+let
+  balancer_source = {
+
+    # core is included by default anv v1model will be if the target is correctly
+    # set but as the target logic isn't stabilized yet i'm including it manually
+    include = [ "core.p4" "v1model.p4" ];
+
+    headers = {
+      header = { inherit ethernet_h ipv4_no_options_h tcp_no_options_h; };
+
+      const = {
+        "MAX_HOPS" = {
+          type = "int";
+          value = "10";
+        };
+        "STANDARD" = {
+          type = "int";
+          value = "0";
+        };
+        "HOPS" = {
+          type = "int";
+          value = "1";
+        };
+      };
+
+      header = {
+        "type_t".content = [{ "tag" = "bit<8>"; }];
+        "hop_t".content = [ { "port" = "bit<8>"; } { "bos" = "bit<8>"; } ];
+        "standard_t".content = [ { "src" = "bit<8>"; } { "dst" = "bit<8>"; } ];
+      };
+
+      struct = {
+        "metadata".content = [{ "ecmp_select" = "bit<14>"; }];
+        "headers".content = [
+          { "ethernet" = "ethernet_h"; }
+          { "ipv4" = "ipv4_no_options_h"; }
+          { "tcp" = "tcp_no_options_h"; }
+        ];
+      };
+      typedef = { "std_meta_t" = "standard_metadata_t"; };
+    };
+    target = "v1model";
+    logic.main = [
+      {
+        "MyParser" = ''
+          parser MyParser(packet_in packet,
+                        out headers hdr,
+                        inout metadata meta,
+                        inout standard_metadata_t standard_metadata) {
+            state start {
+                transition parse_ethernet;
+            }
+            state parse_ethernet {
+                packet.extract(hdr.ethernet);
+                transition select(hdr.ethernet.etherType) {
+                    0x800: parse_ipv4;
+                    default: accept;
+                }
+            }
+            state parse_ipv4 {
+                packet.extract(hdr.ipv4);
+                transition select(hdr.ipv4.protocol) {
+                    6: parse_tcp;
+                    default: accept;
+                }
+            }
+            state parse_tcp {
+                packet.extract(hdr.tcp);
+                transition accept;
+            }
+          }
+        '';
+      }
+      {
+        "MyVerifyChecksum" = ''
+          control MyVerifyChecksum(inout headers hdr, inout metadata meta) {
+              apply { }
+          }
+        '';
+      }
+
+      {
+        "MyIngress" = ''
+          control MyIngress(inout headers hdr,
+                            inout metadata meta,
+                            inout standard_metadata_t standard_metadata) {
+              action drop() {
+                  mark_to_drop(standard_metadata);
+              }
+              action set_ecmp_select(bit<16> ecmp_base, bit<32> ecmp_count) {
+                  hash(meta.ecmp_select,
+                      HashAlgorithm.crc16,
+                      ecmp_base,
+                      { hdr.ipv4.srcAddr,
+                        hdr.ipv4.dstAddr,
+                        hdr.ipv4.protocol,
+                        hdr.tcp.srcPort,
+                        hdr.tcp.dstPort },
+                      ecmp_count);
+              }
+              action set_nhop(bit<48> nhop_dmac, bit<32> nhop_ipv4, bit<9> port) {
+                  hdr.ethernet.dstAddr = nhop_dmac;
+                  hdr.ipv4.dstAddr = nhop_ipv4;
+                  standard_metadata.egress_spec = port;
+                  hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
+              }
+              table ecmp_group {
+                  key = {
+                      hdr.ipv4.dstAddr: lpm;
+                  }
+                  actions = {
+                      drop;
+                      set_ecmp_select;
+                  }
+                  size = 1024;
+              }
+              table ecmp_nhop {
+                  key = {
+                      meta.ecmp_select: exact;
+                  }
+                  actions = {
+                      drop;
+                      set_nhop;
+                  }
+                  size = 2;
+              }
+              apply {
+                  if (hdr.ipv4.isValid() && hdr.ipv4.ttl > 0) {
+                      ecmp_group.apply();
+                      ecmp_nhop.apply();
+                  }
+              }
+          }
+        '';
+      }
+      {
+        "MyEgress" = ''
+          control MyEgress(inout headers hdr,
+                           inout metadata meta,
+                           inout standard_metadata_t standard_metadata) {
+
+              action rewrite_mac(bit<48> smac) {
+                  hdr.ethernet.srcAddr = smac;
+              }
+              action drop() {
+                  mark_to_drop(standard_metadata);
+              }
+              table send_frame {
+                  key = {
+                      standard_metadata.egress_port: exact;
+                  }
+                  actions = {
+                      rewrite_mac;
+                      drop;
+                  }
+                  size = 256;
+              }
+              apply {
+                  send_frame.apply();
+              }
+          }
+        '';
+      }
+      {
+        "MyComputeChecksum" = ''
+          control MyComputeChecksum(inout headers hdr, inout metadata meta) {
+               apply {
+                  update_checksum(
+                      hdr.ipv4.isValid(),
+                      { hdr.ipv4.version,
+                        hdr.ipv4.ihl,
+                        hdr.ipv4.diffserv,
+                        hdr.ipv4.totalLen,
+                        hdr.ipv4.identification,
+                        hdr.ipv4.flags,
+                        hdr.ipv4.fragOffset,
+                        hdr.ipv4.ttl,
+                        hdr.ipv4.protocol,
+                        hdr.ipv4.srcAddr,
+                        hdr.ipv4.dstAddr },
+                      hdr.ipv4.hdrChecksum,
+                      HashAlgorithm.csum16);
+              }
+          }
+        '';
+      }
+      {
+        "MyDeparser" = ''
+          control MyDeparser(packet_out packet, in headers hdr) {
+              apply {
+                  packet.emit(hdr.ethernet);
+                  packet.emit(hdr.ipv4);
+                  packet.emit(hdr.tcp);
+              }
+          }
+        '';
+      }
+
+    ];
+
+  };
+
+in {
+
+  options = {
+
+    networking.p4.load_balancer = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = lib.mdDoc ''
+            Whether to enable a P4 load_balancer
+            blabla see https://github.com/p4lang/tutorials
+          '';
+        };
+        source = {
+          type = types.attrsOf types.anything;
+          default = balancer_source;
+          description = ''
+            bla
+          '';
+        };
+      };
+
+    config = {
+       
+    };
+  };
+
+          #        p4Platform.mkProgram {
+          #          name = "test";
+          #          src = (p4Platform.runTranspiler { p4Source = source; });
+          #          p4Target = "bmv2-v1model";
+
+}
