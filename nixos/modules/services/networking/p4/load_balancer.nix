@@ -4,6 +4,11 @@
 
 with lib;
 let
+  # TODO: we cannot use helpers in modules because we create an infinite
+  # recursion in options, maybe set them up in modules? Otherwise users still
+  # have access to them so is it really an issue... 
+  cfg = config.services.networking.p4.load-balancer;
+
   balancer_source = {
 
     # core is included by default anv v1model will be if the target is correctly
@@ -11,7 +16,53 @@ let
     include = [ "core.p4" "v1model.p4" ];
 
     headers = {
-      header = { inherit ethernet_h ipv4_no_options_h tcp_no_options_h; };
+      header = {
+        "ethernet_h".content = [
+          { "dstAddr" = "macAddr"; }
+          { "srcAddr" = "macAddr"; }
+          { "etherType" = "bit<16>"; }
+        ];
+
+        "ipv4_no_options_h".content = [
+          { "version" = "bit<4>"; }
+          { "ihl" = "bit<4>"; }
+          { "diffserv" = "bit<8>"; }
+          { "totalLen" = "bit<16>"; }
+          { "identification" = "bit<16>"; }
+          { "flags" = "bit<3>"; }
+          { "fragOffset" = "bit<13>"; }
+          { "ttl" = "bit<8>"; }
+          { "protocol" = "bit<8>"; }
+          { "hdrChecksum" = "bit<16>"; }
+          { "srcAddr" = "ip4Addr"; }
+          { "dstAddr" = "ip4Addr"; }
+        ];
+
+        "tcp_no_options_h".content = [
+          { "srcPort" = "bit<16>"; }
+          { "dstPort" = "bit<16>"; }
+          { "seqNo" = "bit<32>"; }
+          { "ackNo" = "bit<32>"; }
+          { "dataOffset" = "bit<4>"; }
+          { "res" = "bit<4>"; }
+          { "cwr" = "bit<1>"; }
+          { "ece" = "bit<1>"; }
+          { "urg" = "bit<1>"; }
+          { "ack" = "bit<1>"; }
+          { "psh" = "bit<1>"; }
+          { "rst" = "bit<1>"; }
+          { "syn" = "bit<1>"; }
+          { "fin" = "bit<1>"; }
+          { "window" = "bit<16>"; }
+          { "checksum" = "bit<16>"; }
+          { "urgentPtr" = "bit<16>"; }
+        ];
+
+        "type_t".content = [{ "tag" = "bit<8>"; }];
+        "hop_t".content = [ { "port" = "bit<8>"; } { "bos" = "bit<8>"; } ];
+        "standard_t".content = [ { "src" = "bit<8>"; } { "dst" = "bit<8>"; } ];
+
+      };
 
       const = {
         "MAX_HOPS" = {
@@ -28,12 +79,6 @@ let
         };
       };
 
-      header = {
-        "type_t".content = [{ "tag" = "bit<8>"; }];
-        "hop_t".content = [ { "port" = "bit<8>"; } { "bos" = "bit<8>"; } ];
-        "standard_t".content = [ { "src" = "bit<8>"; } { "dst" = "bit<8>"; } ];
-      };
-
       struct = {
         "metadata".content = [{ "ecmp_select" = "bit<14>"; }];
         "headers".content = [
@@ -42,9 +87,13 @@ let
           { "tcp" = "tcp_no_options_h"; }
         ];
       };
-      typedef = { "std_meta_t" = "standard_metadata_t"; };
+      typedef = {
+        "macAddr" = "bit<48>";
+        "ip4Addr" = "bit<32>";
+        "std_meta_t" = "standard_metadata_t";
+      };
     };
-    target = "v1model";
+    target = "v1switch";
     logic.main = [
       {
         "MyParser" = ''
@@ -209,11 +258,11 @@ in {
 
   options = {
 
-    networking.p4.load-balancer = {
+    services.networking.p4.load-balancer = {
       enable = mkOption {
         type = types.bool;
         default = false;
-        description = lib.mdDoc ''
+        description = ''
           Whether to enable a P4 load balancer.
           This is a load balancer example using BMV2 as a target. 
           It is based on https://github.com/p4lang/tutorials for
@@ -225,9 +274,9 @@ in {
           .
         '';
       };
-      source = {
-        type = types.attrsOf types.anything;
+      source = mkOption {
         default = balancer_source;
+        type = types.attrsOf types.anything;
         description = ''
           The p4 program sent to the transpiler.
           Please refer to build-support/p4 for its format.
@@ -235,23 +284,25 @@ in {
       };
     };
 
-    config = mkIf cfg.enable {
-      systemd.services.load-balancer = let
-        p4Program = p4Platform.mkProgram {
-          name = "load-balancer-example";
-          src = (p4Platform.runTranspiler { p4Source = cfg.source; });
-          p4Target = "bmv2-v1model";
-        };
-      in {
-        wantedBy = [ "default.target" ];
-        after = [ "network.target" ];
-        serviceConfig = {
-          Type = "simple";
-          ExecStart = "${pkgs.bmv2}/bin/simple_switch ${p4Program}/out.json";
-        };
+  };
+
+  config = mkIf cfg.enable {
+    systemd.services.load-balancer = let
+      p4Program = pkgs.p4Platform.mkProgram {
+        name = "load-balancer-example";
+        src = (pkgs.p4Platform.runTranspiler { p4Source = cfg.source; });
+        p4Target = "bmv2-v1model";
+      };
+    in {
+      wantedBy = [ "default.target" ];
+      after = [ "network.target" ];
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = "${pkgs.bmv2}/bin/simple_switch ${p4Program}/out.json";
       };
     };
-
   };
+
+  meta.maintainers = with lib.maintainers; [ govanify ];
 
 }
